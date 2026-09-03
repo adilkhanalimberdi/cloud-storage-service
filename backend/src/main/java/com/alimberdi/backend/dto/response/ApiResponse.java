@@ -1,4 +1,5 @@
 package com.alimberdi.backend.dto.response;
 
-public class ApiResponse {
-}
+public record ApiResponse<T>(
+		T data
+) {}

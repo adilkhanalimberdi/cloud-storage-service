@@ -4,15 +4,13 @@ CREATE TABLE users
     username   VARCHAR(255)                NOT NULL,
     email      VARCHAR(255)                NOT NULL,
     password   VARCHAR(255)                NOT NULL,
-    role       SMALLINT                    NOT NULL,
+    role       VARCHAR(255)                NOT NULL,
     is_active  BOOLEAN                     NOT NULL,
-    created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-    updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-    CONSTRAINT pk_users PRIMARY KEY (id)
+    created_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
+    updated_at TIMESTAMP(6) WITH TIME ZONE NOT NULL,
+
+    CONSTRAINT pk_users PRIMARY KEY (id),
+    CONSTRAINT uc_users_email UNIQUE (email),
+    CONSTRAINT uc_users_username UNIQUE (username),
+    CONSTRAINT chk_users_role CHECK ( role IN ('ADMIN', 'USER') )
 );
-
-ALTER TABLE users
-    ADD CONSTRAINT uc_users_email UNIQUE (email);
-
-ALTER TABLE users
-    ADD CONSTRAINT uc_users_username UNIQUE (username);
