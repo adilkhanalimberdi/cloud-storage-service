@@ -46,8 +46,12 @@ public class RefreshTokenService {
 	}
 
 	@Transactional(rollbackFor = Exception.class)
-	public RefreshToken generateToken(User user) {
+	public RefreshToken generate(User user) {
 		return rotate(user);
+	}
+
+	public void invalidate(String token) {
+		refreshTokenRepository.deleteByToken(token);
 	}
 
 }

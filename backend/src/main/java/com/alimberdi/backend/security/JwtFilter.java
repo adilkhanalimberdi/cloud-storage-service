@@ -3,6 +3,7 @@ package com.alimberdi.backend.security;
 import com.alimberdi.backend.dto.response.ErrorResponse;
 import com.alimberdi.backend.service.CustomUserDetailsService;
 import com.alimberdi.backend.service.JwtService;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

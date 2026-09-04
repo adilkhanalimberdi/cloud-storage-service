@@ -7,7 +7,6 @@ import type {AuthResponse} from "../types/response/auth.ts";
 
 export const api = axios.create({
     baseURL: import.meta.env.VITE_API_BASE_URL,
-    withCredentials: true,
     headers: {
         "Content-Type": "application/json",
     },
@@ -39,15 +38,30 @@ const notifyRefreshSubscribers = (accessToken: string | null) => {
     refreshSubscribers = [];
 };
 
+// Логин/регистрацию/рефреш/логаут никогда не ретраим через этот механизм -
+// иначе, например, 401 на неверный пароль при логине попытался бы "обновить" сессию.
+const isAuthEndpoint = (url: string) =>
+    url.includes("/auth/login") ||
+    url.includes("/auth/register") ||
+    url.includes("/auth/refresh") ||
+    url.includes("/auth/logout");
+
 api.interceptors.response.use(
     (response) => response,
     async (error: AxiosError) => {
         const originalRequest = error.config as RetryableRequestConfig | undefined;
         const status = error.response?.status;
+        const url = originalRequest?.url ?? "";
 
-        const isRefreshCall = originalRequest?.url === REFRESH_URL;
+        if (!originalRequest || status !== 401 || isAuthEndpoint(url) || originalRequest._retry) {
+            return Promise.reject(error);
+        }
 
-        if (!originalRequest || status !== 401 || isRefreshCall || originalRequest._retry) {
+        const refreshToken = tokenStore.getRefreshToken();
+
+        if (!refreshToken) {
+            tokenStore.clear();
+            authEvents.emitUnauthorized();
             return Promise.reject(error);
         }
 
@@ -69,10 +83,10 @@ api.interceptors.response.use(
         isRefreshing = true;
 
         try {
-            const response = await api.post<ApiResponse<AuthResponse>>(REFRESH_URL);
-            const {accessToken} = response.data.data;
+            const response = await api.post<ApiResponse<AuthResponse>>(REFRESH_URL, {refreshToken});
+            const {accessToken, refreshToken: newRefreshToken} = response.data.data;
 
-            tokenStore.setAccessToken(accessToken);
+            tokenStore.setTokens(accessToken, newRefreshToken);
             notifyRefreshSubscribers(accessToken);
 
             originalRequest.headers.set("Authorization", `Bearer ${accessToken}`);

@@ -12,7 +12,3 @@ spring:
 app:
   cors:
     allowed-origins: http://localhost:5173
-  cookie:
-    secure: true
-    same-site: None
-    partitioned: false

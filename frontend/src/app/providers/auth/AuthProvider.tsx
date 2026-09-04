@@ -12,22 +12,9 @@ type AuthProviderProps = {
 };
 
 function AuthProvider({children}: AuthProviderProps) {
-    const [status, setStatus] = useState<AuthStatus>("loading");
-
-    useEffect(() => {
-        AuthService.refresh()
-            .then(({accessToken}) => {
-                tokenStore.setAccessToken(accessToken);
-                setStatus("authenticated");
-            })
-            .catch((error) => {
-                // Ожидаемо при первом заходе (нет refresh-cookie) - не считаем это критичным.
-                // Но если проблема в другом (сеть/CORS/бэкенд не поднят) - лучше увидеть это в консоли.
-                console.warn("Silent refresh failed:", error);
-                tokenStore.clear();
-                setStatus("unauthenticated");
-            });
-    }, []);
+    const [status, setStatus] = useState<AuthStatus>(() =>
+        tokenStore.getRefreshToken() ? "authenticated" : "unauthenticated"
+    );
 
     useEffect(() => {
         return authEvents.onUnauthorized(() => {
@@ -36,18 +23,30 @@ function AuthProvider({children}: AuthProviderProps) {
     }, []);
 
     const login = async (payload: LoginRequest) => {
-        const {accessToken} = await AuthService.login(payload);
-        tokenStore.setAccessToken(accessToken);
+        const {accessToken, refreshToken} = await AuthService.login(payload);
+        tokenStore.setTokens(accessToken, refreshToken);
         setStatus("authenticated");
     };
 
     const register = async (payload: RegisterRequest) => {
-        const {accessToken} = await AuthService.register(payload);
-        tokenStore.setAccessToken(accessToken);
+        const {accessToken, refreshToken} = await AuthService.register(payload);
+        tokenStore.setTokens(accessToken, refreshToken);
         setStatus("authenticated");
     };
 
-    const logout = () => {
+    const logout = async () => {
+        const refreshToken = tokenStore.getRefreshToken();
+
+        if (refreshToken) {
+            try {
+                await AuthService.logout(refreshToken);
+            } catch (error) {
+                // Даже если бэкенд недоступен - разлогиниваем локально,
+                // токен всё равно больше не будет присылаться с запросами.
+                console.warn("Backend logout failed, clearing local session anyway:", error);
+            }
+        }
+
         tokenStore.clear();
         setStatus("unauthenticated");
     };
@@ -55,7 +54,6 @@ function AuthProvider({children}: AuthProviderProps) {
     const value = useMemo(
         () => ({
             status,
-            isLoading: status === "loading",
             isAuthenticated: status === "authenticated",
             login,
             register,
