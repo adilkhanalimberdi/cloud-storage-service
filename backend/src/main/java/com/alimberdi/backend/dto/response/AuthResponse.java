@@ -1,4 +1,6 @@
 package com.alimberdi.backend.dto.response;
 
-public class AuthResponse {
-}
+public record AuthResponse(
+		String accessToken,
+		String refreshToken
+) {}
