@@ -1,10 +1,6 @@
 import {api} from "../api.ts";
-import type {LoginRequest} from "../../types/request/login.ts";
-import type {RegisterRequest} from "../../types/request/register.ts";
-import type {RefreshRequest} from "../../types/request/refresh.ts";
-import type {LogoutRequest} from "../../types/request/logout.ts";
-import type {AuthResponse} from "../../types/response/auth.ts";
-import type {ApiResponse} from "../../types/response/api.ts";
+import type {AuthResponse, LoginRequest, LogoutRequest, RefreshRequest, RegisterRequest} from "../../types/auth.ts";
+import type {ApiResponse} from "../../types/api.ts";
 
 export const AuthService = {
     async login(payload: LoginRequest) {

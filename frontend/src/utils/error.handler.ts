@@ -1,6 +1,6 @@
 import * as axios from "axios";
 import toast from "react-hot-toast";
-import type {ErrorResponse} from "../types/response/error.ts";
+import type {ErrorResponse} from "../types/error.ts";
 
 export const handleError = (err: Error, defaultMessage: string = "Internal Server Error") => {
     if (axios.isAxiosError(err)) {

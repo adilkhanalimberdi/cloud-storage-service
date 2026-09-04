@@ -1,6 +1,5 @@
 import {createContext} from "react";
-import type {LoginRequest} from "../../../types/request/login.ts";
-import type {RegisterRequest} from "../../../types/request/register.ts";
+import type {LoginRequest, RegisterRequest} from "../../../types/auth.ts";
 
 export type AuthStatus = "authenticated" | "unauthenticated";
 
