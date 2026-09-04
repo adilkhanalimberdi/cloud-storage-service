@@ -36,7 +36,7 @@ export function Header() {
                 <Button variant="primary"
                         onClick={handleLogout}
                         disabled={isLoggingOut}
-                        className="px-4 py-2 text-sm font-medium transition-all">
+                        className="px-4 py-2 w-24 text-sm font-medium transition-all">
                     {isLoggingOut ? "Logout..." : "Logout"}
                 </Button>
             </div>

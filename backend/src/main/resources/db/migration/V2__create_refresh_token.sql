@@ -8,5 +8,5 @@ CREATE TABLE refresh_tokens
 
     CONSTRAINT pk_refresh_tokens PRIMARY KEY (id),
     CONSTRAINT uc_refresh_tokens_user UNIQUE (user_id),
-    CONSTRAINT FK_REFRESH_TOKENS_ON_USER FOREIGN KEY (user_id) REFERENCES users (id)
+    CONSTRAINT FK_REFRESH_TOKENS_ON_USER FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );

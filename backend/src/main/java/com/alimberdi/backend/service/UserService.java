@@ -1,8 +1,9 @@
 package com.alimberdi.backend.service;
 
 import com.alimberdi.backend.dto.request.RegisterRequest;
-import com.alimberdi.backend.event.UserRegisteredEvent;
-import com.alimberdi.backend.exception.UserNotFoundException;
+import com.alimberdi.backend.dto.event.UserRegisteredEvent;
+import com.alimberdi.backend.exception.ResourceAlreadyExistsException;
+import com.alimberdi.backend.exception.ResourceNotFoundException;
 import com.alimberdi.backend.model.entity.User;
 import com.alimberdi.backend.model.enums.UserRole;
 import com.alimberdi.backend.repository.UserRepository;
@@ -22,11 +23,19 @@ public class UserService {
 
 	public User getByUsername(String username) {
 		return userRepository.findByUsername(username)
-				.orElseThrow(() -> new UserNotFoundException("User with username " + username + " not found"));
+				.orElseThrow(() -> new ResourceNotFoundException("User with username " + username + " not found."));
 	}
 
 	@Transactional(rollbackFor = Exception.class)
 	public User create(RegisterRequest request) {
+		if (userRepository.existsByUsername(request.username())) {
+			throw new ResourceAlreadyExistsException("User with username " + request.username() + " already exists.");
+		}
+
+		if (userRepository.existsByEmail(request.email())) {
+			throw new ResourceAlreadyExistsException("User with email " + request.email() + " already exists.");
+		}
+
 		User user = User.builder()
 				.username(request.username())
 				.email(request.email())

@@ -1,7 +1,7 @@
 package com.alimberdi.backend.mapper;
 
-import com.alimberdi.backend.dto.response.SidebarItemResponse;
-import com.alimberdi.backend.model.entity.SidebarItem;
+import com.alimberdi.backend.dto.response.FolderResponse;
+import com.alimberdi.backend.model.entity.Folder;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingConstants;
 import org.mapstruct.NullValuePropertyMappingStrategy;
@@ -12,10 +12,10 @@ import java.util.List;
 		componentModel = MappingConstants.ComponentModel.SPRING,
 		nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE
 )
-public interface SidebarItemMapper {
+public interface FolderMapper {
 
-	List<SidebarItemResponse> toResponseList(List<SidebarItem> sidebarItems);
+	FolderResponse toResponse(Folder folder);
 
-	SidebarItemResponse toResponse(SidebarItem item);
+	List<FolderResponse> toResponseList(List<Folder> folder);
 
 }

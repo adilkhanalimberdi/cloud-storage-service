@@ -1,8 +1,8 @@
-export type Icon = "FOLDER" | "HARD_DRIVE" | "USERS" | "CLOCK" |
-    "STAR" | "TRASH" | "TXT" | "PDF" | "IMAGE";
+export type FolderIcon = "DEFAULT" | "HARD_DRIVE" | "USERS" | "CLOCK" | "STAR" | "TRASH";
+export type FileIcon = "TXT" | "PDF" | "IMG";
 
-export const iconMap: Record<Icon, string> = {
-    "FOLDER": "📁",
+export const iconMap: Record<FolderIcon | FileIcon, string> = {
+    "DEFAULT": "📁",
     "HARD_DRIVE": "💻",
     "USERS": "👥",
     "CLOCK": "🕒",
@@ -10,5 +10,5 @@ export const iconMap: Record<Icon, string> = {
     "TRASH": "🗑️",
     "TXT": "📄",
     "PDF": "📕",
-    "IMAGE": "🖼️"
+    "IMG": "🖼️"
 }

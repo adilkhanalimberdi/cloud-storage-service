@@ -25,3 +25,6 @@ app:
     expiration:
       access-minutes: ${JWT_ACCESS_EXPIRATION_MINUTES}
       refresh-minutes: ${JWT_REFRESH_EXPIRATION_MINUTES}
+
+  storage:
+    total-space: 16106127360

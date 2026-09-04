@@ -17,8 +17,6 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     }
 
     componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-        // Пока нет отдельного сервиса логирования - выводим в консоль,
-        // чтобы вместо белого экрана сразу было видно, что именно упало.
         console.error("Uncaught render error:", error, errorInfo);
     }
 
@@ -32,7 +30,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
                         <h1 className="text-lg font-semibold text-red-900 dark:text-red-100">
                             Что-то сломалось
                         </h1>
-                        <pre className="overflow-auto whitespace-pre-wrap break-words text-sm text-red-800 dark:text-red-200">
+                        <pre className="overflow-auto whitespace-pre-wrap wrap-break-word text-sm text-red-800 dark:text-red-200">
                             {error.message}
                         </pre>
                         <button

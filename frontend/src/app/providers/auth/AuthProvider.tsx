@@ -40,8 +40,6 @@ function AuthProvider({children}: AuthProviderProps) {
             try {
                 await AuthService.logout(refreshToken);
             } catch (error) {
-                // Даже если бэкенд недоступен - разлогиниваем локально,
-                // токен всё равно больше не будет присылаться с запросами.
                 console.warn("Backend logout failed, clearing local session anyway:", error);
             }
         }

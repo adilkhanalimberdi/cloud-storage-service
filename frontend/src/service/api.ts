@@ -38,8 +38,6 @@ const notifyRefreshSubscribers = (accessToken: string | null) => {
     refreshSubscribers = [];
 };
 
-// Логин/регистрацию/рефреш/логаут никогда не ретраим через этот механизм -
-// иначе, например, 401 на неверный пароль при логине попытался бы "обновить" сессию.
 const isAuthEndpoint = (url: string) =>
     url.includes("/auth/login") ||
     url.includes("/auth/register") ||
