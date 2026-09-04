@@ -4,8 +4,7 @@ import {AuthProviderContext, type AuthStatus} from "./auth.context.ts";
 import {AuthService} from "../../../service/auth/auth.service.ts";
 import {tokenStore} from "../../../service/auth/token.store.ts";
 import {authEvents} from "../../../service/auth/auth.events.ts";
-import type {LoginRequest} from "../../../types/request/login.ts";
-import type {RegisterRequest} from "../../../types/request/register.ts";
+import type {LoginRequest, RegisterRequest} from "../../../types/auth.ts";
 
 type AuthProviderProps = {
     children: ReactNode;
@@ -41,8 +40,6 @@ function AuthProvider({children}: AuthProviderProps) {
             try {
                 await AuthService.logout(refreshToken);
             } catch (error) {
-                // Даже если бэкенд недоступен - разлогиниваем локально,
-                // токен всё равно больше не будет присылаться с запросами.
                 console.warn("Backend logout failed, clearing local session anyway:", error);
             }
         }

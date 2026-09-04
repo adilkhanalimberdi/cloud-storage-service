@@ -2,8 +2,10 @@ package com.alimberdi.backend.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
+import org.springframework.scheduling.annotation.EnableAsync;
 
-@Configuration
+@EnableAsync
 @EnableJpaAuditing
-public class JpaAuditingConfig {
+@Configuration
+public class AppConfig {
 }

@@ -1,6 +1,8 @@
 import {useTheme} from "../../hooks/use.theme.ts";
 import type {Theme} from "../../app/providers/theme/theme.context.ts";
-import {MonitorIcon, MoonIcon, SunIcon} from "./icons.tsx";
+import {SunIcon} from "../icons/SunIcon.tsx";
+import {MoonIcon} from "../icons/MoonIcon.tsx";
+import {MonitorIcon} from "../icons/MonitorIcon.tsx";
 
 const OPTIONS: {value: Theme; label: string; icon: typeof SunIcon}[] = [
     {value: "light", label: "Светлая", icon: SunIcon},

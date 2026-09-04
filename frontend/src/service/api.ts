@@ -2,8 +2,8 @@ import * as axios from "axios";
 import type {AxiosError, InternalAxiosRequestConfig} from "axios";
 import {tokenStore} from "./auth/token.store.ts";
 import {authEvents} from "./auth/auth.events.ts";
-import type {ApiResponse} from "../types/response/api.ts";
-import type {AuthResponse} from "../types/response/auth.ts";
+import type {ApiResponse} from "../types/api.ts";
+import type {AuthResponse} from "../types/auth.ts";
 
 export const api = axios.create({
     baseURL: import.meta.env.VITE_API_BASE_URL,
@@ -38,8 +38,6 @@ const notifyRefreshSubscribers = (accessToken: string | null) => {
     refreshSubscribers = [];
 };
 
-// Логин/регистрацию/рефреш/логаут никогда не ретраим через этот механизм -
-// иначе, например, 401 на неверный пароль при логине попытался бы "обновить" сессию.
 const isAuthEndpoint = (url: string) =>
     url.includes("/auth/login") ||
     url.includes("/auth/register") ||

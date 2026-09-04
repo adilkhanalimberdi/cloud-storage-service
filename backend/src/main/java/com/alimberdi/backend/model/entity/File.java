@@ -1,6 +1,6 @@
 package com.alimberdi.backend.model.entity;
 
-import com.alimberdi.backend.model.enums.UserRole;
+import com.alimberdi.backend.model.enums.FileIcon;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -11,37 +11,36 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "users")
+@Table(name = "files")
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @EntityListeners(AuditingEntityListener.class)
-public class User {
+public class File {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.UUID)
 	private UUID id;
 
-	@Column(nullable = false, unique = true)
-	private String username;
-
-	@Column(nullable = false, unique = true)
-	private String email;
-
 	@Column(nullable = false)
-	private String password;
+	private String name;
 
 	@Column(nullable = false)
 	@Enumerated(EnumType.STRING)
-	private UserRole role;
+	private FileIcon icon;
 
-	@Column(nullable = false)
-	private boolean isActive;
+	private String type;
+
+	private Long size;
+
+	@ManyToOne
+	@JoinColumn(name = "folder_id")
+	private Folder folder;
 
 	@LastModifiedDate
-	@Column(nullable = false)
+	@Column(nullable = false, updatable = false)
 	private Instant updatedAt;
 
 	@CreatedDate

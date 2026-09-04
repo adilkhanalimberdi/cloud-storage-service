@@ -1,6 +1,6 @@
 package com.alimberdi.backend.service;
 
-import com.alimberdi.backend.exception.RefreshTokenNotFoundException;
+import com.alimberdi.backend.exception.ResourceNotFoundException;
 import com.alimberdi.backend.model.entity.RefreshToken;
 import com.alimberdi.backend.model.entity.User;
 import com.alimberdi.backend.repository.RefreshTokenRepository;
@@ -24,7 +24,7 @@ public class RefreshTokenService {
 
 	public RefreshToken getByToken(String token) {
 		return refreshTokenRepository.findByToken(token)
-				.orElseThrow(() -> new RefreshTokenNotFoundException("Refresh token with token " + token + " not found."));
+				.orElseThrow(() -> new ResourceNotFoundException("Refresh token with token " + token + " not found."));
 	}
 
 	@Transactional(rollbackFor = Exception.class)

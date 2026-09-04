@@ -1,0 +1,182 @@
+import { useCallback, useEffect, useState } from "react";
+import { handleError } from "../utils/error.handler.ts";
+import toast from "react-hot-toast";
+import type { FolderResponse } from "../types/folder.ts";
+import type { FolderIcon } from "../utils/icon.utils.ts";
+import { FolderService } from "../service/folder.service.ts";
+
+const DEFAULT_FETCH_ERROR_MESSAGE = "Failed to fetch folders.";
+
+export const useFolders = () => {
+    const [folders, setFolders] = useState<FolderResponse[] | null>(null);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+
+    const [newFolderName, setNewFolderName] = useState<string>("");
+    const [newFolderIcon, setNewFolderIcon] = useState<FolderIcon>("DEFAULT");
+    const [parentId, setParentId] = useState<string | null>(null);
+
+    const [isRootFolderCreating, setIsRootFolderCreating] = useState<boolean>(false);
+    const [isCreating, setIsCreating] = useState<boolean>(false);
+
+    const [activeRootFolder, setActiveRootFolder] = useState<FolderResponse | null>(null);
+    const [currentFolder, setCurrentFolder] = useState<FolderResponse | null>(null);
+    const [folderStack, setFolderStack] = useState<FolderResponse[]>([]);
+
+    const clearForm = () => {
+        setNewFolderName("");
+        setNewFolderIcon("DEFAULT");
+    };
+
+    const selectRootFolder = useCallback((folder: FolderResponse | null) => {
+        setActiveRootFolder(folder);
+        setCurrentFolder(folder);
+        if (folder) {
+            setFolderStack([folder]);
+            setParentId(folder.id);
+        } else {
+            setFolderStack([]);
+            setParentId(null);
+        }
+    }, []);
+
+    const refetch = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const data = await FolderService.getAllRoot();
+            setFolders(data);
+
+            if (data && data.length > 0) {
+                const target = data.find((f) => f.id === activeRootFolder?.id) ?? data[0];
+                selectRootFolder(target);
+            } else {
+                selectRootFolder(null);
+            }
+        } catch (err) {
+            handleError(err as Error, DEFAULT_FETCH_ERROR_MESSAGE);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [activeRootFolder?.id, selectRootFolder]);
+
+    const navigateToSubfolder = (subfolder: FolderResponse) => {
+        setCurrentFolder(subfolder);
+        setFolderStack((prev) => [...prev, subfolder]);
+        setParentId(subfolder.id);
+    };
+
+    const navigateToBreadcrumb = (index: number) => {
+        const targetFolder = folderStack[index];
+        if (!targetFolder) return;
+
+        const updatedStack = folderStack.slice(0, index + 1);
+        setFolderStack(updatedStack);
+        setCurrentFolder(targetFolder);
+        setParentId(targetFolder.id);
+    };
+
+    const navigateUp = () => {
+        if (folderStack.length <= 1) return;
+
+        const updatedStack = folderStack.slice(0, -1);
+        const previousFolder = updatedStack[updatedStack.length - 1];
+
+        setFolderStack(updatedStack);
+        setCurrentFolder(previousFolder);
+        setParentId(previousFolder.id);
+    };
+
+    const handleCreateRootFolder = async () => {
+        if (!newFolderName.trim()) return;
+        setIsRootFolderCreating(true);
+        try {
+            await FolderService.create(newFolderName, newFolderIcon, null);
+            await refetch();
+            toast.success("Root folder created successfully!");
+            clearForm();
+        } catch (err) {
+            handleError(err as Error, "Failed to create new folder.");
+        } finally {
+            setIsRootFolderCreating(false);
+        }
+    };
+
+    const handleCreateFolder = async (targetParentId?: string) => {
+        if (!newFolderName.trim()) return;
+
+        const effectiveParentId = targetParentId ?? parentId ?? currentFolder?.id ?? null;
+
+        setIsCreating(true);
+        try {
+            await FolderService.create(newFolderName, newFolderIcon, effectiveParentId);
+            await refetch();
+            toast.success("Folder created successfully!");
+            clearForm();
+        } catch (err) {
+            handleError(err as Error, "Failed to create folder.");
+        } finally {
+            setIsCreating(false);
+        }
+    };
+
+    useEffect(() => {
+        let ignore = false;
+
+        const loadInitialData = async () => {
+            try {
+                const data = await FolderService.getAllRoot();
+                if (!ignore) {
+                    setFolders(data);
+                    if (data && data.length > 0) {
+                        const initial = data[0];
+                        setActiveRootFolder(initial);
+                        setCurrentFolder(initial);
+                        setFolderStack([initial]);
+                        setParentId(initial.id);
+                    }
+                }
+            } catch (err) {
+                if (!ignore) {
+                    handleError(err as Error, DEFAULT_FETCH_ERROR_MESSAGE);
+                }
+            } finally {
+                if (!ignore) {
+                    setIsLoading(false);
+                }
+            }
+        };
+
+        loadInitialData().then();
+
+        return () => {
+            ignore = true;
+        };
+    }, []);
+
+    return {
+        folders,
+        setFolders,
+        activeRootFolder,
+        selectRootFolder,
+        currentFolder,
+        subfolders: currentFolder?.subfolders ?? [],
+        folderStack,
+
+        isLoading,
+        isRootFolderCreating,
+        isCreating,
+
+        newFolderName,
+        setNewFolderName,
+        newFolderIcon,
+        setNewFolderIcon,
+        parentId,
+        setParentId,
+
+        refetch,
+        handleCreateRootFolder,
+        handleCreateFolder,
+        navigateToSubfolder,
+        navigateToBreadcrumb,
+        navigateUp,
+    };
+};
