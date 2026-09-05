@@ -13,6 +13,7 @@ interface FolderCreateModalProps {
     setFolderIcon: (icon: FolderIcon) => void;
     onSubmit: () => void;
     isLoading?: boolean;
+    clearForm: () => void;
 }
 
 const AVAILABLE_ICONS: { value: FolderIcon; label: string }[] = [
@@ -22,7 +23,7 @@ const AVAILABLE_ICONS: { value: FolderIcon; label: string }[] = [
     { value: "CLOCK", label: "Recent / Archive" },
 ];
 
-export const FolderCreateModal: React.FC<FolderCreateModalProps> = ({isOpen, onClose, folderName, setFolderName, folderIcon, setFolderIcon, onSubmit, isLoading}) => {
+export const FolderCreateModal: React.FC<FolderCreateModalProps> = ({isOpen, onClose, folderName, setFolderName, folderIcon, setFolderIcon, onSubmit, isLoading, clearForm}) => {
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Create New Folder">
             <div className="flex flex-col gap-5">
@@ -56,10 +57,16 @@ export const FolderCreateModal: React.FC<FolderCreateModalProps> = ({isOpen, onC
 
                 <div className="flex items-center justify-end gap-3 mt-2">
                     <Button variant="secondary"
-                            onClick={onClose}
+                            onClick={() => {
+                                onClose();
+                                clearForm();
+                            }}
                             disabled={isLoading}>Cancel</Button>
                     <Button variant="primary"
-                            onClick={onSubmit}
+                            onClick={() => {
+                                onSubmit();
+                                clearForm();
+                            }}
                             disabled={!folderName.trim() || isLoading}>
                         {isLoading ? "Creating..." : "Create Folder"}
                     </Button>

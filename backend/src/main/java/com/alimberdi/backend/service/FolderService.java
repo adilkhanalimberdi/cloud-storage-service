@@ -53,6 +53,11 @@ public class FolderService {
 		return folderMapper.toResponse(folder);
 	}
 
+	public Folder getById(UUID id) {
+		return folderRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Folder with id " + id + " not found."));
+	}
+
 	@Transactional(rollbackFor = Exception.class)
 	public FolderResponse create(CustomUserDetails userDetails, FolderCreateRequest request) {
 		User user = userService.getByUsername(userDetails.getUsername());

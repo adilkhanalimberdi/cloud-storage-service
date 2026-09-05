@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { Input } from "../../ui/Input.tsx";
 import { Modal } from "../../ui/Modal.tsx";
 import { Button } from "../../ui/Button.tsx";
@@ -7,14 +7,16 @@ import ReactMarkdown from "react-markdown";
 interface FileCreateModalProps {
     isOpen: boolean;
     onClose: () => void;
+    fileName: string;
+    setFileName: (fileName: string) => void;
+    content: string,
+    setContent: (content: string) => void;
     onSubmit: (fileName: string, content: string) => void;
     isLoading?: boolean;
+    clearForm: () => void;
 }
 
-export const FileCreateModal: React.FC<FileCreateModalProps> = ({isOpen, onClose, onSubmit, isLoading}) => {
-    const [fileName, setFileName] = useState<string>("");
-    const [content, setContent] = useState<string>("");
-
+export const FileCreateModal: React.FC<FileCreateModalProps> = ({isOpen, onClose, fileName, setFileName, content, setContent, onSubmit, isLoading, clearForm}) => {
     const isMarkdown = fileName.endsWith(".md") && fileName.trim() !== ".md";
 
     const handleCreate = () => {
@@ -22,8 +24,7 @@ export const FileCreateModal: React.FC<FileCreateModalProps> = ({isOpen, onClose
         const finalName = fileName.trim();
 
         onSubmit(finalName, content);
-        setFileName("");
-        setContent("");
+        clearForm();
     };
 
     return (
@@ -69,10 +70,17 @@ export const FileCreateModal: React.FC<FileCreateModalProps> = ({isOpen, onClose
                 </div>
 
                 <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-100 dark:border-zinc-800">
-                    <Button variant="secondary" onClick={onClose} disabled={isLoading}>
+                    <Button variant="secondary"
+                            onClick={() => {
+                                onClose();
+                                clearForm();
+                            }}
+                            disabled={isLoading}>
                         Cancel
                     </Button>
-                    <Button variant="primary" onClick={handleCreate} disabled={!fileName.trim() || isLoading}>
+                    <Button variant="primary"
+                            onClick={handleCreate}
+                            disabled={!fileName.trim() || isLoading}>
                         {isLoading ? "Saving..." : "Create"}
                     </Button>
                 </div>

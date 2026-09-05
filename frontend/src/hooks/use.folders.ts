@@ -14,6 +14,7 @@ export const useFolders = () => {
     const [newFolderName, setNewFolderName] = useState<string>("");
     const [newFolderIcon, setNewFolderIcon] = useState<FolderIcon>("DEFAULT");
     const [parentId, setParentId] = useState<string | null>(null);
+    const [isSubfolderCreating, setIsSubfolderCreating] = useState<boolean>(false);
 
     const [isRootFolderCreating, setIsRootFolderCreating] = useState<boolean>(false);
     const [isCreating, setIsCreating] = useState<boolean>(false);
@@ -22,9 +23,10 @@ export const useFolders = () => {
     const [currentFolder, setCurrentFolder] = useState<FolderResponse | null>(null);
     const [folderStack, setFolderStack] = useState<FolderResponse[]>([]);
 
-    const clearForm = () => {
+    const clearFolderCreateForm = () => {
         setNewFolderName("");
         setNewFolderIcon("DEFAULT");
+        setIsSubfolderCreating(false);
     };
 
     const selectRootFolder = useCallback((folder: FolderResponse | null) => {
@@ -110,7 +112,7 @@ export const useFolders = () => {
             await FolderService.create(newFolderName, newFolderIcon, null);
             await refetchRootFolders();
             toast.success("Root folder created successfully!");
-            clearForm();
+            clearFolderCreateForm();
         } catch (err) {
             handleError(err as Error, "Failed to create root folder.");
         } finally {
@@ -131,7 +133,7 @@ export const useFolders = () => {
             await refetchRootFolders();
 
             toast.success("Folder created successfully!");
-            clearForm();
+            clearFolderCreateForm();
         } catch (err) {
             handleError(err as Error, "Failed to create folder.");
         } finally {
@@ -192,6 +194,9 @@ export const useFolders = () => {
         setNewFolderIcon,
         parentId,
         setParentId,
+        isSubfolderCreating,
+        setIsSubfolderCreating,
+        clearFolderCreateForm,
 
         refetch: refreshCurrentFolder,
         refetchRootFolders,

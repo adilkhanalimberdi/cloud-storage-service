@@ -6,16 +6,16 @@ import {iconMap} from "../utils/icon.utils.ts";
 import {useFolders} from "../hooks/use.folders.ts";
 import {Button} from "../components/ui/Button.tsx";
 import type {FolderResponse} from "../types/folder.ts";
-import {LayoutGrid, LayoutList, Plus} from "lucide-react";
+import {LayoutGrid, LayoutList, Pencil, Plus, Trash} from "lucide-react";
 import {CustomToaster} from "../components/ui/CustomToaster.tsx";
 import {Breadcrumbs} from "../components/layout/BreadCrumbs.tsx";
 import type {FileResponse} from "../types/file.ts";
 import {getFileSize} from "../utils/file.size.utils.ts";
-import {useState} from "react";
 import {CreateMenu} from "../components/ui/CreateMenu.tsx";
 import {StorageWidget} from "../components/features/storage/StorageWidget.tsx";
 import {FolderCreateModal} from "../components/features/folders/FolderCreateModal.tsx";
 import {FileCreateModal} from "../components/features/files/FileCreateModal.tsx";
+import {useFiles} from "../hooks/use.files.ts";
 
 function HomePage() {
     const {
@@ -35,15 +35,23 @@ function HomePage() {
         setNewFolderName,
         newFolderIcon,
         setNewFolderIcon,
+        isSubfolderCreating,
+        setIsSubfolderCreating,
         handleCreateFolder,
+        clearFolderCreateForm
     } = useFolders();
 
-    const [isFolderModalOpen, setIsFolderModalOpen] = useState<boolean>(false);
-    const [isTxtModalOpen, setIsTxtModalOpen] = useState<boolean>(false);
+    const {
+        newFileName,
+        setNewFileName,
+        newFileContent,
+        setNewFileContent,
+        isFileCreating,
+        setIsFileCreating,
+        clearFileCreateForm,
 
-    const handleUploadFiles = (files: FileList) => {
-        console.log("Selected files for upload:", Array.from(files));
-    };
+        handleUploadFiles,
+    } = useFiles();
 
     return (
         <div className="flex flex-col h-screen w-screen overflow-hidden bg-gray-50 dark:bg-zinc-950 text-gray-900 dark:text-zinc-100">
@@ -81,20 +89,33 @@ function HomePage() {
                         className="h-14 border-b border-gray-100 dark:border-zinc-800/80 px-6 flex items-center justify-between gap-4">
                         <Breadcrumbs folderStack={folderStack} navigateToBreadcrumb={navigateToBreadcrumb} />
 
-                        <div className="flex items-center gap-3">
-                            <CreateMenu onOpenCreateFolderModal={() => setIsFolderModalOpen(true)}
-                                        onOpenCreateTxtModal={() => setIsTxtModalOpen(true)}
-                                        onUploadFiles={handleUploadFiles} />
+                        {currentFolder && (
+                            <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-2">
+                                    <button className="p-2 hover:bg-red-200 dark:hover:bg-red-800 rounded-lg text-gray-600 dark:text-zinc-300">
+                                        <Trash size={16} />
+                                    </button>
+                                    <button className="p-2 hover:bg-gray-200 dark:hover:bg-zinc-800 rounded-lg text-gray-600 dark:text-zinc-300">
+                                        <Pencil size={16} />
+                                    </button>
+                                    <CreateMenu onOpenCreateFolderModal={() => setIsSubfolderCreating(true)}
+                                                onOpenCreateTxtModal={() => setIsFileCreating(true)}
+                                                onUploadFiles={handleUploadFiles}
+                                                currentFolderId={currentFolder.id} />
+                                </div>
 
-                            <div className="flex items-center gap-2">
-                                <button className="p-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg text-gray-600 dark:text-zinc-300">
-                                    <LayoutGrid size={16} />
-                                </button>
-                                <button className="p-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg text-gray-600 dark:text-zinc-300">
-                                    <LayoutList size={16} />
-                                </button>
+                                <div className="h-5 w-px bg-gray-400 dark:bg-zinc-600"></div>
+
+                                <div className="flex items-center gap-2">
+                                    <button className="p-2 hover:bg-gray-200 dark:hover:bg-zinc-800 rounded-lg text-gray-600 dark:text-zinc-300">
+                                        <LayoutGrid size={16} />
+                                    </button>
+                                    <button className="p-2 hover:bg-gray-200 dark:hover:bg-zinc-800 rounded-lg text-gray-600 dark:text-zinc-300">
+                                        <LayoutList size={16} />
+                                    </button>
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-6">
@@ -136,32 +157,30 @@ function HomePage() {
 
             <CustomToaster />
 
-            <FolderCreateModal isOpen={isFolderModalOpen}
+            <FolderCreateModal isOpen={isSubfolderCreating}
                                onClose={() => {
-                                   setIsFolderModalOpen(false);
-                                   setNewFolderName("");
-                                   setNewFolderIcon("DEFAULT");
+                                   setIsSubfolderCreating(false);
+                                   clearFolderCreateForm()
                                }}
                                folderName={newFolderName}
                                setFolderName={setNewFolderName}
                                folderIcon={newFolderIcon}
                                setFolderIcon={setNewFolderIcon}
-                               onSubmit={async () => {
-                                   await handleCreateFolder();
-                                   setIsFolderModalOpen(false);
-                                   setNewFolderName("");
-                                   setNewFolderIcon("DEFAULT");
-                               }}
-                               isLoading={isCreating} />
+                               onSubmit={() => handleCreateFolder()}
+                               isLoading={isCreating}
+                               clearForm={clearFolderCreateForm} />
 
-            <FileCreateModal isOpen={isTxtModalOpen}
+            <FileCreateModal isOpen={isFileCreating}
                              onClose={() => {
-                                    setIsTxtModalOpen(false);
-
-                                }}
-                             onSubmit={() => {
-                                    setIsTxtModalOpen(false);
-                                }} />
+                                 setIsFileCreating(false);
+                                 clearFileCreateForm();
+                             }}
+                             fileName={newFileName}
+                             setFileName={setNewFileName}
+                             content={newFileContent}
+                             setContent={setNewFileContent}
+                             onSubmit={() => setIsFileCreating(false)}
+                             clearForm={clearFileCreateForm} />
         </div>
     );
 }

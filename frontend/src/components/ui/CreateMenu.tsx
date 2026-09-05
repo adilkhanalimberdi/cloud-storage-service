@@ -4,10 +4,11 @@ import { Plus, FolderPlus, Upload, FileText } from "lucide-react";
 interface CreateMenuProps {
     onOpenCreateFolderModal: () => void;
     onOpenCreateTxtModal: () => void;
-    onUploadFiles: (files: FileList) => void;
+    onUploadFiles: (files: FileList, currentFolderId: string) => void;
+    currentFolderId: string;
 }
 
-export function CreateMenu({onOpenCreateFolderModal, onOpenCreateTxtModal, onUploadFiles}: CreateMenuProps) {
+export function CreateMenu({onOpenCreateFolderModal, onOpenCreateTxtModal, onUploadFiles, currentFolderId}: CreateMenuProps) {
     const [isOpen, setIsOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -36,7 +37,7 @@ export function CreateMenu({onOpenCreateFolderModal, onOpenCreateTxtModal, onUpl
 
     const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
-            onUploadFiles(e.target.files);
+            onUploadFiles(e.target.files, currentFolderId);
             setIsOpen(false);
             e.target.value = "";
         }
@@ -55,7 +56,7 @@ export function CreateMenu({onOpenCreateFolderModal, onOpenCreateTxtModal, onUpl
                     className={`p-2 rounded-lg transition-colors ${
                         isOpen
                             ? "bg-gray-200 dark:bg-zinc-700 text-gray-900 dark:text-zinc-100"
-                            : "hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-zinc-300"
+                            : "hover:bg-gray-200 dark:hover:bg-zinc-800 text-gray-600 dark:text-zinc-300"
                         }`}
                     title="Create or upload">
                 <Plus size={18} className={`transition-transform duration-200 ${isOpen ? "rotate-45" : ""}`} />
