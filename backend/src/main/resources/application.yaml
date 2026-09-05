@@ -19,6 +19,11 @@ spring:
   jpa:
     open-in-view: false
 
+  servlet:
+    multipart:
+      max-file-size: ${MAX_FILE_SIZE}
+      max-request-size: ${MAX_REQUEST_SIZE}
+
 app:
   jwt:
     secret-key: ${JWT_SECRET_KEY}

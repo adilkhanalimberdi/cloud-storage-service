@@ -11,7 +11,9 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "files")
+@Table(name = "files", indexes = {
+		@Index(name = "idx_file_folder_id", columnList = "folder_id")
+})
 @Getter
 @Setter
 @Builder
@@ -28,15 +30,26 @@ public class File {
 	private String name;
 
 	@Column(nullable = false)
+	private String originalName;
+
+	@Column(nullable = false, unique = true)
+	private String objectKey;
+
+	@Column(nullable = false)
+	private String extension;
+
+	@Column(nullable = false)
+	private String contentType;
+
+	@Column(nullable = false)
+	private Long size;
+
+	@Column(nullable = false)
 	@Enumerated(EnumType.STRING)
 	private FileIcon icon;
 
-	private String type;
-
-	private Long size;
-
-	@ManyToOne
-	@JoinColumn(name = "folder_id")
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "folder_id", nullable = false)
 	private Folder folder;
 
 	@LastModifiedDate

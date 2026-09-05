@@ -13,10 +13,12 @@ import com.alimberdi.backend.model.enums.FolderIcon;
 import com.alimberdi.backend.repository.FolderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -39,6 +41,21 @@ public class FolderService {
 		return folderMapper.toResponseList(
 				folderRepository.findAllByUser_UsernameAndIsRoot(userDetails.getUsername(), isRoot)
 		);
+	}
+
+	@Transactional(readOnly = true)
+	public FolderResponse getById(CustomUserDetails userDetails, UUID id) {
+		Folder folder = folderRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Folder with id " + id + " not found."));
+		if (!folder.getUser().getId().equals(userDetails.getId())) {
+			throw new AccessDeniedException("You cannot perform this action.");
+		}
+		return folderMapper.toResponse(folder);
+	}
+
+	public Folder getById(UUID id) {
+		return folderRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Folder with id " + id + " not found."));
 	}
 
 	@Transactional(rollbackFor = Exception.class)

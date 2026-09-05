@@ -13,6 +13,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
@@ -28,6 +29,15 @@ public class FolderController {
 	) {
 		return ResponseEntity
 				.ok(new ApiResponse<>(folderService.getAll(userDetails, isRoot)));
+	}
+
+	@GetMapping("/{id}")
+	public ResponseEntity<ApiResponse<FolderResponse>> getById(
+			@AuthenticationPrincipal CustomUserDetails userDetails,
+			@PathVariable UUID id
+	) {
+		return ResponseEntity
+				.ok(new ApiResponse<>(folderService.getById(userDetails, id)));
 	}
 
 	@PostMapping

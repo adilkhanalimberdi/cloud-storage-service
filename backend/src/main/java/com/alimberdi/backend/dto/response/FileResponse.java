@@ -9,9 +9,12 @@ import java.util.UUID;
 public record FileResponse(
 		UUID id,
 		String name,
+		String originalName,
+		String objectKey,
+		String extension,
+		String contentType,
+		Long size,
 		FileIcon icon,
-		String type,
-		BigDecimal size,
 		Instant updatedAt,
 		Instant createdAt
 ) {}
