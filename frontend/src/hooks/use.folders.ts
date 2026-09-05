@@ -39,24 +39,42 @@ export const useFolders = () => {
         }
     }, []);
 
-    const refetch = useCallback(async () => {
-        setIsLoading(true);
+    const refetchRootFolders = useCallback(async () => {
         try {
             const data = await FolderService.getAllRoot();
             setFolders(data);
-
-            if (data && data.length > 0) {
-                const target = data.find((f) => f.id === activeRootFolder?.id) ?? data[0];
-                selectRootFolder(target);
-            } else {
-                selectRootFolder(null);
-            }
+            return data;
         } catch (err) {
             handleError(err as Error, DEFAULT_FETCH_ERROR_MESSAGE);
-        } finally {
-            setIsLoading(false);
+            return null;
         }
-    }, [activeRootFolder?.id, selectRootFolder]);
+    }, []);
+
+    const refreshCurrentFolder = async () => {
+        if (!currentFolder?.id) return;
+
+        try {
+            const freshFolder = await FolderService.getById(currentFolder.id);
+
+            setCurrentFolder(freshFolder);
+
+            setFolderStack((prevStack) => {
+                if (prevStack.length === 0) return [freshFolder];
+                const updated = [...prevStack];
+                updated[updated.length - 1] = freshFolder;
+                return updated;
+            });
+        } catch (err) {
+            console.error(err);
+            const rootData = await refetchRootFolders();
+            if (rootData && activeRootFolder) {
+                const freshRoot = rootData.find((f) => f.id === activeRootFolder.id);
+                if (freshRoot) {
+                    setActiveRootFolder(freshRoot);
+                }
+            }
+        }
+    };
 
     const navigateToSubfolder = (subfolder: FolderResponse) => {
         setCurrentFolder(subfolder);
@@ -90,11 +108,11 @@ export const useFolders = () => {
         setIsRootFolderCreating(true);
         try {
             await FolderService.create(newFolderName, newFolderIcon, null);
-            await refetch();
+            await refetchRootFolders();
             toast.success("Root folder created successfully!");
             clearForm();
         } catch (err) {
-            handleError(err as Error, "Failed to create new folder.");
+            handleError(err as Error, "Failed to create root folder.");
         } finally {
             setIsRootFolderCreating(false);
         }
@@ -103,12 +121,15 @@ export const useFolders = () => {
     const handleCreateFolder = async (targetParentId?: string) => {
         if (!newFolderName.trim()) return;
 
-        const effectiveParentId = targetParentId ?? parentId ?? currentFolder?.id ?? null;
+        const validTargetId = typeof targetParentId === "string" ? targetParentId : null;
+        const effectiveParentId = validTargetId ?? parentId ?? currentFolder?.id ?? null;
 
         setIsCreating(true);
         try {
             await FolderService.create(newFolderName, newFolderIcon, effectiveParentId);
-            await refetch();
+            await refreshCurrentFolder();
+            await refetchRootFolders();
+
             toast.success("Folder created successfully!");
             clearForm();
         } catch (err) {
@@ -172,7 +193,9 @@ export const useFolders = () => {
         parentId,
         setParentId,
 
-        refetch,
+        refetch: refreshCurrentFolder,
+        refetchRootFolders,
+        refreshCurrentFolder,
         handleCreateRootFolder,
         handleCreateFolder,
         navigateToSubfolder,

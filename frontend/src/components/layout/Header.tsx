@@ -1,7 +1,7 @@
 
 import { toast } from 'react-hot-toast';
-import ThemeSwitcher from "./ThemeSwitcher.tsx";
-import {Button} from "./Button.tsx";
+import ThemeSwitcher from "../ui/ThemeSwitcher.tsx";
+import {Button} from "../ui/Button.tsx";
 import {handleError} from "../../utils/error.handler.ts";
 import {useAuth} from "../../hooks/use.auth.ts";
 import {useState} from "react";

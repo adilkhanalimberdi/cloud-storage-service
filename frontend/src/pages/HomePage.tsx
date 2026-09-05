@@ -1,25 +1,23 @@
-import {Header} from "../components/ui/Header.tsx";
-import {RootFolder} from "../components/ui/RootFolder.tsx";
-import {FolderCard} from "../components/ui/FolderCard.tsx";
-import {FileCard} from "../components/ui/FileCard.tsx";
+import {Header} from "../components/layout/Header.tsx";
+import {RootFolder} from "../components/features/folders/RootFolder.tsx";
+import {FolderCard} from "../components/features/folders/FolderCard.tsx";
+import {FileCard} from "../components/features/files/FileCard.tsx";
 import {iconMap} from "../utils/icon.utils.ts";
 import {useFolders} from "../hooks/use.folders.ts";
 import {Button} from "../components/ui/Button.tsx";
 import type {FolderResponse} from "../types/folder.ts";
 import {LayoutGrid, LayoutList, Plus} from "lucide-react";
 import {CustomToaster} from "../components/ui/CustomToaster.tsx";
-import {Breadcrumbs} from "../components/ui/BreadCrumbs.tsx";
+import {Breadcrumbs} from "../components/layout/BreadCrumbs.tsx";
 import type {FileResponse} from "../types/file.ts";
 import {getFileSize} from "../utils/file.size.utils.ts";
-import {useStorage} from "../hooks/use.storage.ts";
+import {useState} from "react";
+import {CreateMenu} from "../components/ui/CreateMenu.tsx";
+import {StorageWidget} from "../components/features/storage/StorageWidget.tsx";
+import {FolderCreateModal} from "../components/features/folders/FolderCreateModal.tsx";
+import {FileCreateModal} from "../components/features/files/FileCreateModal.tsx";
 
 function HomePage() {
-    const {
-        usedSpaceFormatted,
-        totalSpaceFormatted,
-        percentage
-    } = useStorage();
-
     const {
         activeRootFolder,
         folders,
@@ -30,24 +28,37 @@ function HomePage() {
         navigateToSubfolder,
         navigateToBreadcrumb,
         isRootFolderCreating,
-        handleCreateRootFolder
+        handleCreateRootFolder,
+
+        isCreating,
+        newFolderName,
+        setNewFolderName,
+        newFolderIcon,
+        setNewFolderIcon,
+        handleCreateFolder,
     } = useFolders();
+
+    const [isFolderModalOpen, setIsFolderModalOpen] = useState<boolean>(false);
+    const [isTxtModalOpen, setIsTxtModalOpen] = useState<boolean>(false);
+
+    const handleUploadFiles = (files: FileList) => {
+        console.log("Selected files for upload:", Array.from(files));
+    };
 
     return (
         <div className="flex flex-col h-screen w-screen overflow-hidden bg-gray-50 dark:bg-zinc-950 text-gray-900 dark:text-zinc-100">
-            <CustomToaster />
-
             <Header />
 
             <div className="flex flex-1 overflow-hidden">
 
                 <aside className="w-64 border-r border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex flex-col justify-between p-4 shrink-0 hidden md:flex">
                     <div className="space-y-6">
-                        <Button children={<Plus size={16} />}
-                                variant="primary"
+                        <Button variant="primary"
                                 className="w-full py-3 flex items-center justify-center"
                                 onClick={handleCreateRootFolder}
-                                disabled={isRootFolderCreating} />
+                                disabled={isRootFolderCreating}>
+                            <Plus size={16} />
+                        </Button>
 
                         <nav className="space-y-1">
                             {folders != null && folders.map((item: FolderResponse) => (
@@ -60,16 +71,7 @@ function HomePage() {
                         </nav>
                     </div>
 
-                    <div className="p-3 bg-gray-50 dark:bg-zinc-800/50 rounded-xl space-y-2">
-                        <div className="flex justify-between text-xs font-medium text-gray-500 dark:text-zinc-400">
-                            <span>Storage</span>
-                            <span>{usedSpaceFormatted} of {totalSpaceFormatted} used</span>
-                        </div>
-                        <div className="w-full h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-full overflow-hidden">
-                            <div className="h-full bg-blue-600 rounded-full transition-all duration-500 ease-out"
-                                 style={{ width: `${percentage}%` }} />
-                        </div>
-                    </div>
+                    <StorageWidget />
                 </aside>
 
                 <main
@@ -79,13 +81,19 @@ function HomePage() {
                         className="h-14 border-b border-gray-100 dark:border-zinc-800/80 px-6 flex items-center justify-between gap-4">
                         <Breadcrumbs folderStack={folderStack} navigateToBreadcrumb={navigateToBreadcrumb} />
 
-                        <div className="flex items-center gap-2">
-                            <button className="p-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg text-gray-600 dark:text-zinc-300">
-                                <LayoutGrid size={16} />
-                            </button>
-                            <button className="p-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg text-gray-600 dark:text-zinc-300">
-                                <LayoutList size={16} />
-                            </button>
+                        <div className="flex items-center gap-3">
+                            <CreateMenu onOpenCreateFolderModal={() => setIsFolderModalOpen(true)}
+                                        onOpenCreateTxtModal={() => setIsTxtModalOpen(true)}
+                                        onUploadFiles={handleUploadFiles} />
+
+                            <div className="flex items-center gap-2">
+                                <button className="p-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg text-gray-600 dark:text-zinc-300">
+                                    <LayoutGrid size={16} />
+                                </button>
+                                <button className="p-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg text-gray-600 dark:text-zinc-300">
+                                    <LayoutList size={16} />
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -125,6 +133,35 @@ function HomePage() {
                     </div>
                 </main>
             </div>
+
+            <CustomToaster />
+
+            <FolderCreateModal isOpen={isFolderModalOpen}
+                               onClose={() => {
+                                   setIsFolderModalOpen(false);
+                                   setNewFolderName("");
+                                   setNewFolderIcon("DEFAULT");
+                               }}
+                               folderName={newFolderName}
+                               setFolderName={setNewFolderName}
+                               folderIcon={newFolderIcon}
+                               setFolderIcon={setNewFolderIcon}
+                               onSubmit={async () => {
+                                   await handleCreateFolder();
+                                   setIsFolderModalOpen(false);
+                                   setNewFolderName("");
+                                   setNewFolderIcon("DEFAULT");
+                               }}
+                               isLoading={isCreating} />
+
+            <FileCreateModal isOpen={isTxtModalOpen}
+                             onClose={() => {
+                                    setIsTxtModalOpen(false);
+
+                                }}
+                             onSubmit={() => {
+                                    setIsTxtModalOpen(false);
+                                }} />
         </div>
     );
 }

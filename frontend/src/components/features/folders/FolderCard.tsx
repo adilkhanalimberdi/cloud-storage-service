@@ -1,4 +1,4 @@
-import {type FolderIcon, iconMap} from "../../utils/icon.utils";
+import {type FolderIcon, iconMap} from "../../../utils/icon.utils.ts";
 
 interface FolderCardProps {
     name: string,
