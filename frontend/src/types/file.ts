@@ -1,11 +1,18 @@
 import type {FileIcon} from "../utils/icon.utils.ts";
 
+export type FileCreateRequest = {
+    fileName: string;
+    content: string;
+}
+
 export type FileResponse = {
     id: string;
     name: string;
-    icon: FileIcon;
-    type: string;
+    originalName: string;
+    extension: string;
+    contentType: string;
     size: bigint;
+    icon: FileIcon;
     updatedAt: Date;
     createdAt: Date;
 }

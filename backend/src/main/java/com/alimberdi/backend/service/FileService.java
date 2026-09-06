@@ -1,6 +1,8 @@
 package com.alimberdi.backend.service;
 
+import com.alimberdi.backend.dto.event.FileCreatedEvent;
 import com.alimberdi.backend.dto.event.FilesUploadedEvent;
+import com.alimberdi.backend.dto.request.FileCreateRequest;
 import com.alimberdi.backend.dto.response.FileResponse;
 import com.alimberdi.backend.exception.InvalidFileException;
 import com.alimberdi.backend.mapper.FileMapper;
@@ -18,6 +20,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -33,6 +37,46 @@ public class FileService {
 	private final FolderService folderService;
 
 	private final ApplicationEventPublisher eventPublisher;
+
+	public FileResponse createFile(CustomUserDetails userDetails, FileCreateRequest request, UUID folderId) {
+		// TODO: Validate extension, filename, content
+		// TODO: Create a helper method to get the metadata
+
+		Folder folder = folderService.getById(folderId);
+		if (!folder.getUser().getId().equals(userDetails.getId())) {
+			throw new AccessDeniedException("You cannot perform this action.");
+		}
+
+		String fileName = request.fileName();
+		String content = request.content();
+
+		String extension = fileName.contains(".")
+				? fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase()
+				: "";
+		SupportedFileExtension supportedExtension = SupportedFileExtension.fromExtension(extension)
+				.orElseThrow(() -> new InvalidFileException("File extension ." + extension + " not supported."));
+
+		String contentType = URLConnection.guessContentTypeFromName(fileName);
+		if (contentType == null) contentType = "application/octet-stream";
+
+		String objectKey = generateObjectKey(userDetails.getId(), folderId, fileName);
+		long size = content == null ? 0L : content.getBytes(StandardCharsets.UTF_8).length;
+
+		File file = File.builder()
+				.name(fileName)
+				.originalName(fileName)
+				.objectKey(objectKey)
+				.extension(extension)
+				.contentType(contentType)
+				.size(size)
+				.icon(supportedExtension.getIcon())
+				.folder(folder)
+				.build();
+		File created = fileRepository.save(file);
+		eventPublisher.publishEvent(new FileCreatedEvent(created, request));
+
+		return fileMapper.toResponse(created);
+	}
 
 	@Transactional(rollbackFor = Exception.class)
 	public List<FileResponse> uploadFile(CustomUserDetails userDetails, List<MultipartFile> files, UUID folderId) {

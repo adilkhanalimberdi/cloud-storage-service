@@ -2,7 +2,6 @@ import {Header} from "../components/layout/Header.tsx";
 import {RootFolder} from "../components/features/folders/RootFolder.tsx";
 import {FolderCard} from "../components/features/folders/FolderCard.tsx";
 import {FileCard} from "../components/features/files/FileCard.tsx";
-import {iconMap} from "../utils/icon.utils.ts";
 import {useFolders} from "../hooks/use.folders.ts";
 import {Button} from "../components/ui/Button.tsx";
 import type {FolderResponse} from "../types/folder.ts";
@@ -10,7 +9,6 @@ import {LayoutGrid, LayoutList, Pencil, Plus, Trash} from "lucide-react";
 import {CustomToaster} from "../components/ui/CustomToaster.tsx";
 import {Breadcrumbs} from "../components/layout/BreadCrumbs.tsx";
 import type {FileResponse} from "../types/file.ts";
-import {getFileSize} from "../utils/file.size.utils.ts";
 import {CreateMenu} from "../components/ui/CreateMenu.tsx";
 import {StorageWidget} from "../components/features/storage/StorageWidget.tsx";
 import {FolderCreateModal} from "../components/features/folders/FolderCreateModal.tsx";
@@ -38,7 +36,9 @@ function HomePage() {
         isSubfolderCreating,
         setIsSubfolderCreating,
         handleCreateFolder,
-        clearFolderCreateForm
+        clearFolderCreateForm,
+
+        refetch,
     } = useFolders();
 
     const {
@@ -51,6 +51,7 @@ function HomePage() {
         clearFileCreateForm,
 
         handleUploadFiles,
+        handleCreateFile,
     } = useFiles();
 
     return (
@@ -69,12 +70,11 @@ function HomePage() {
                         </Button>
 
                         <nav className="space-y-1">
-                            {folders != null && folders.map((item: FolderResponse) => (
-                                <RootFolder icon={iconMap[item.icon]}
-                                            label={item.name}
-                                            key={item.id}
-                                            active={activeRootFolder?.id === item.id}
-                                            onClick={() => selectRootFolder(item)} />
+                            {folders != null && folders.map((folder: FolderResponse) => (
+                                <RootFolder folder={folder}
+                                            key={folder.id}
+                                            active={activeRootFolder?.id === folder.id}
+                                            onClick={() => selectRootFolder(folder)} />
                             ))}
                         </nav>
                     </div>
@@ -85,8 +85,7 @@ function HomePage() {
                 <main
                     className="flex-1 flex flex-col min-w-0 overflow-hidden bg-white dark:bg-zinc-900 m-0 md:m-2 md:rounded-2xl border border-transparent md:border-gray-200 md:dark:border-zinc-800 shadow-sm">
 
-                    <div
-                        className="h-14 border-b border-gray-100 dark:border-zinc-800/80 px-6 flex items-center justify-between gap-4">
+                    <div className="h-14 border-b border-gray-100 dark:border-zinc-800/80 px-6 flex items-center justify-between gap-4">
                         <Breadcrumbs folderStack={folderStack} navigateToBreadcrumb={navigateToBreadcrumb} />
 
                         {currentFolder && (
@@ -101,7 +100,8 @@ function HomePage() {
                                     <CreateMenu onOpenCreateFolderModal={() => setIsSubfolderCreating(true)}
                                                 onOpenCreateTxtModal={() => setIsFileCreating(true)}
                                                 onUploadFiles={handleUploadFiles}
-                                                currentFolderId={currentFolder.id} />
+                                                currentFolderId={currentFolder.id}
+                                                refetch={refetch} />
                                 </div>
 
                                 <div className="h-5 w-px bg-gray-400 dark:bg-zinc-600"></div>
@@ -127,8 +127,7 @@ function HomePage() {
                                 </h3>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                                     {subfolders.map((folder: FolderResponse) => (
-                                        <FolderCard name={folder.name}
-                                                    icon={folder.icon}
+                                        <FolderCard folder={folder}
                                                     key={folder.id}
                                                     onClick={() => navigateToSubfolder(folder)} />
                                     ))}
@@ -143,9 +142,7 @@ function HomePage() {
                                 </h3>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                     {currentFolder?.files.map((file: FileResponse) => (
-                                        <FileCard name={file.name}
-                                                  size={getFileSize(file.size)}
-                                                  type={file.type}
+                                        <FileCard file={file}
                                                   key={file.id} />
                                     ))}
                                 </div>
@@ -160,7 +157,7 @@ function HomePage() {
             <FolderCreateModal isOpen={isSubfolderCreating}
                                onClose={() => {
                                    setIsSubfolderCreating(false);
-                                   clearFolderCreateForm()
+                                   clearFolderCreateForm();
                                }}
                                folderName={newFolderName}
                                setFolderName={setNewFolderName}
@@ -179,7 +176,7 @@ function HomePage() {
                              setFileName={setNewFileName}
                              content={newFileContent}
                              setContent={setNewFileContent}
-                             onSubmit={() => setIsFileCreating(false)}
+                             onSubmit={() => handleCreateFile(currentFolder?.id, refetch)}
                              clearForm={clearFileCreateForm} />
         </div>
     );

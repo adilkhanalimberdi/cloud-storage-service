@@ -1,5 +1,6 @@
 package com.alimberdi.backend.controller;
 
+import com.alimberdi.backend.dto.request.FileCreateRequest;
 import com.alimberdi.backend.dto.response.ApiResponse;
 import com.alimberdi.backend.dto.response.FileResponse;
 import com.alimberdi.backend.model.entity.CustomUserDetails;
@@ -22,8 +23,19 @@ public class FileController {
 
 	private final FileService fileService;
 
-	@PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	public ResponseEntity<ApiResponse<List<FileResponse>>> uploadFile(
+	@PostMapping
+	public ResponseEntity<ApiResponse<FileResponse>> create(
+			@AuthenticationPrincipal CustomUserDetails userDetails,
+			@RequestBody FileCreateRequest request,
+			@RequestParam("folderId") UUID folderId
+	) {
+		return ResponseEntity
+				.status(HttpStatus.CREATED)
+				.body(new ApiResponse<>(fileService.createFile(userDetails, request, folderId)));
+	}
+
+	@PostMapping(name = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public ResponseEntity<ApiResponse<List<FileResponse>>> upload(
 			@AuthenticationPrincipal CustomUserDetails userDetails,
 			@RequestParam("files") List<MultipartFile> files,
 			@RequestParam("folderId") UUID folderId

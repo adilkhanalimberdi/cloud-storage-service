@@ -39,9 +39,11 @@ public class Folder {
 	@JoinColumn(name = "parent_id")
 	private Folder parent;
 
+	@Builder.Default
 	@OneToMany(mappedBy = "parent", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
 	private List<Folder> subfolders = new ArrayList<>();
 
+	@Builder.Default
 	@OneToMany(mappedBy = "folder", fetch = FetchType.EAGER, cascade =  CascadeType.ALL)
 	private List<File> files = new ArrayList<>();
 
