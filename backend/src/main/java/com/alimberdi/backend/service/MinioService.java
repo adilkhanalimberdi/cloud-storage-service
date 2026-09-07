@@ -6,7 +6,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
+
+import java.io.InputStream;
 
 @Slf4j
 @Service
@@ -18,19 +19,33 @@ public class MinioService {
 
 	private final MinioClient minioClient;
 
-	public void uploadFile(String objectKey, MultipartFile file, String contentType) {
+	public void uploadFile(String objectKey, InputStream stream, long size, String contentType) {
 		ensureBucketExists();
 		try {
 			minioClient.putObject(
 					PutObjectArgs.builder()
 							.bucket(minioBucket)
 							.object(objectKey)
-							.stream(file.getInputStream(), file.getSize(), (long) -1)
+							.stream(stream, size, (long) -1)
 							.contentType(contentType)
 							.build()
 			);
 		} catch (Exception ex) {
 			throw new MinioException("Failed to upload file: " + objectKey, ex);
+		}
+	}
+
+	public void deleteFile(String objectKey) {
+		ensureBucketExists();
+		try {
+			minioClient.removeObject(
+					RemoveObjectArgs.builder()
+							.bucket(minioBucket)
+							.object(objectKey)
+							.build()
+			);
+		} catch (io.minio.errors.MinioException e) {
+			throw new MinioException("Failed to delete file: " + objectKey, e);
 		}
 	}
 
@@ -42,7 +57,7 @@ public class MinioService {
 				log.info("Bucket {} created", minioBucket);
 			}
 		} catch (Exception ex) {
-			log.error("Detailed MinIO error: ", ex);
+			log.error("Failed to ensure bucket exists: ", ex);
 			throw new MinioException("Failed to ensure bucket exists: " + minioBucket, ex);
 		}
 	}

@@ -1,10 +1,13 @@
 package com.alimberdi.backend.service;
 
 import com.alimberdi.backend.dto.event.FileCreatedEvent;
+import com.alimberdi.backend.dto.event.FileDeletedEvent;
 import com.alimberdi.backend.dto.event.FilesUploadedEvent;
 import com.alimberdi.backend.dto.request.FileCreateRequest;
+import com.alimberdi.backend.dto.request.RenameFileRequest;
 import com.alimberdi.backend.dto.response.FileResponse;
 import com.alimberdi.backend.exception.InvalidFileException;
+import com.alimberdi.backend.exception.ResourceNotFoundException;
 import com.alimberdi.backend.mapper.FileMapper;
 import com.alimberdi.backend.model.entity.CustomUserDetails;
 import com.alimberdi.backend.model.entity.File;
@@ -12,6 +15,7 @@ import com.alimberdi.backend.model.entity.Folder;
 import com.alimberdi.backend.model.enums.SupportedFileExtension;
 import com.alimberdi.backend.repository.FileRepository;
 import com.alimberdi.backend.util.FileValidator;
+import com.alimberdi.backend.util.TextFileValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -20,7 +24,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
@@ -38,42 +41,33 @@ public class FileService {
 
 	private final ApplicationEventPublisher eventPublisher;
 
+	private File getById(UUID id) {
+		return fileRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("File with id " + id + " not found."));
+	}
+
+	@Transactional(rollbackFor = Exception.class)
 	public FileResponse createFile(CustomUserDetails userDetails, FileCreateRequest request, UUID folderId) {
-		// TODO: Validate extension, filename, content
-		// TODO: Create a helper method to get the metadata
+		byte[] contentBytes = request.content().getBytes(StandardCharsets.UTF_8);
+		SupportedFileExtension supportedExtension = TextFileValidator.validate(request.fileName(), contentBytes);
 
 		Folder folder = folderService.getById(folderId);
-		if (!folder.getUser().getId().equals(userDetails.getId())) {
-			throw new AccessDeniedException("You cannot perform this action.");
-		}
+		checkFolderAccess(folder, userDetails.getId());
 
-		String fileName = request.fileName();
-		String content = request.content();
-
-		String extension = fileName.contains(".")
-				? fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase()
-				: "";
-		SupportedFileExtension supportedExtension = SupportedFileExtension.fromExtension(extension)
-				.orElseThrow(() -> new InvalidFileException("File extension ." + extension + " not supported."));
-
-		String contentType = URLConnection.guessContentTypeFromName(fileName);
-		if (contentType == null) contentType = "application/octet-stream";
-
-		String objectKey = generateObjectKey(userDetails.getId(), folderId, fileName);
-		long size = content == null ? 0L : content.getBytes(StandardCharsets.UTF_8).length;
+		String objectKey = generateObjectKey(userDetails.getId(), folderId, request.fileName());
 
 		File file = File.builder()
-				.name(fileName)
-				.originalName(fileName)
+				.name(request.fileName())
+				.originalName(request.fileName())
 				.objectKey(objectKey)
-				.extension(extension)
-				.contentType(contentType)
-				.size(size)
+				.extension(supportedExtension.getExtension())
+				.contentType(supportedExtension.getMimeType())
+				.size((long) contentBytes.length)
 				.icon(supportedExtension.getIcon())
 				.folder(folder)
 				.build();
 		File created = fileRepository.save(file);
-		eventPublisher.publishEvent(new FileCreatedEvent(created, request));
+		eventPublisher.publishEvent(new FileCreatedEvent(created, contentBytes));
 
 		return fileMapper.toResponse(created);
 	}
@@ -83,9 +77,7 @@ public class FileService {
 		files.forEach(FileValidator::validate);
 
 		Folder folder = folderService.getById(folderId);
-		if (!folder.getUser().getId().equals(userDetails.getId())) {
-			throw new AccessDeniedException("You cannot perform this action.");
-		}
+		checkFolderAccess(folder, userDetails.getId());
 
 		List<File> filesToSave = files.stream()
 				.map(file -> {
@@ -117,12 +109,41 @@ public class FileService {
 		return fileMapper.toResponseList(created);
 	}
 
+	@Transactional(rollbackFor = Exception.class)
+	public FileResponse rename(CustomUserDetails userDetails, UUID id, RenameFileRequest request) {
+		File file = getById(id);
+		Folder folder = file.getFolder();
+
+		checkFolderAccess(folder, userDetails.getId());
+
+		file.setName(request.fileName());
+		return fileMapper.toResponse(fileRepository.save(file));
+	}
+
+	@Transactional(rollbackFor = Exception.class)
+	public void delete(CustomUserDetails userDetails, UUID id) {
+		File file = getById(id);
+		Folder folder = file.getFolder();
+
+		checkFolderAccess(folder, userDetails.getId());
+
+		eventPublisher.publishEvent(new FileDeletedEvent(file.getObjectKey()));
+		fileRepository.delete(file);
+	}
+
 	private String generateObjectKey(UUID userId, UUID folderId, String originalFilename) {
 		String safeFilename = originalFilename.replaceAll("[^a-zA-Z0-9._-]", "_");
 		String folderName = (folderId != null) ? folderId.toString() : "root";
 		String randomId = UUID.randomUUID().toString();
 
-		return String.format("uploads/users/%s/folders/%s/%s_%s", userId, folderName, randomId, safeFilename);
+		final String OBJECT_KEY_FORMAT = "uploads/users/%s/folders/%s/%s_%s";
+		return String.format(OBJECT_KEY_FORMAT, userId, folderName, randomId, safeFilename);
+	}
+
+	private void checkFolderAccess(Folder folder, UUID userId) {
+		if (!folder.getUser().getId().equals(userId)) {
+			throw new AccessDeniedException("You cannot perform this action.");
+		}
 	}
 
 }

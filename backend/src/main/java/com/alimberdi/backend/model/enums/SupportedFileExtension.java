@@ -10,19 +10,23 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public enum SupportedFileExtension {
 
-	PNG("png", "image/png", FileIcon.IMG, 5 * 1024 * 1024L),
-	JPG("jpg", "image/jpeg", FileIcon.IMG, 5 * 1024 * 1024L),
-	JPEG("jpeg", "image/jpeg", FileIcon.IMG, 5 * 1024 * 1024L),
-	WEBP("webp", "image/webp", FileIcon.IMG, 5 * 1024 * 1024L),
+	TXT("txt", "text/plain", FileIcon.TXT, 20 * 1024 * 1024L, true),
+	MD("md", "text/markdown", FileIcon.TXT, 20 * 1024 * 1024L, true),
+	JAVA("java", "text/x-java-source", FileIcon.TXT, 20 * 1024 * 1024L, true),
+	JSON("json", "application/json", FileIcon.TXT, 20 * 1024 * 1024L, true),
 
-	PDF("pdf", "application/pdf", FileIcon.PDF, 20 * 1024 * 1024L),
-	TXT("txt", "text/plain", FileIcon.TXT, 20 * 1024 * 1024L),
-	MD("md", "text/markdown", FileIcon.TXT, 20 * 1024 * 1024L);
+	PNG("png", "image/png", FileIcon.IMG, 5 * 1024 * 1024L, false),
+	JPG("jpg", "image/jpeg", FileIcon.IMG, 5 * 1024 * 1024L, false),
+	JPEG("jpeg", "image/jpeg", FileIcon.IMG, 5 * 1024 * 1024L, false),
+	WEBP("webp", "image/webp", FileIcon.IMG, 5 * 1024 * 1024L, false),
+
+	PDF("pdf", "application/pdf", FileIcon.PDF, 20 * 1024 * 1024L, false);
 
 	private final String extension;
 	private final String mimeType;
 	private final FileIcon icon;
 	private final long maxSizeBytes;
+	private final boolean textBased;
 
 	public static Optional<SupportedFileExtension> fromExtension(String extension) {
 		if (extension == null || extension.isBlank()) {

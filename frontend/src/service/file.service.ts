@@ -1,4 +1,4 @@
-import type {FileCreateRequest, FileResponse} from "../types/file.ts";
+import type {FileCreateRequest, FileResponse, RenameFileRequest} from "../types/file.ts";
 import {api} from "./api.ts";
 
 export const FileService = {
@@ -29,5 +29,17 @@ export const FileService = {
             }
         });
         return response.data.data;
+    },
+
+    async rename(id: string, fileName: string): Promise<FileResponse> {
+        const payload: RenameFileRequest = {
+            fileName: fileName
+        }
+        const response = await api.patch(`/files/${id}/rename`, payload);
+        return response.data.data;
+    },
+
+    async delete(id: string): Promise<void> {
+        await api.delete(`/files/${id}`);
     }
 }

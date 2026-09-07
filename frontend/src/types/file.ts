@@ -1,5 +1,9 @@
 import type {FileIcon} from "../utils/icon.utils.ts";
 
+export type RenameFileRequest = {
+    fileName: string;
+}
+
 export type FileCreateRequest = {
     fileName: string;
     content: string;

@@ -9,6 +9,9 @@ export const useFiles = () => {
     const [newFileContent, setNewFileContent] = useState<string>("");
     const [isFileCreating, setIsFileCreating] = useState<boolean>(false);
 
+    const [editFileName, setEditFileName] = useState<string>("");
+    const [isEditing, setIsEditing] = useState<boolean>(false);
+
     const handleCreateFile = async (folderId: string | undefined, refetch: () => void) => {
         if (!folderId) return;
         try {
@@ -41,6 +44,29 @@ export const useFiles = () => {
         }
     };
 
+    const handleRenameFile = async (fileId: string, refetch: () => void) => {
+        setIsEditing(true);
+        try {
+            await FileService.rename(fileId, editFileName);
+            refetch();
+            toast.success("File renamed successfully!");
+        } catch (err) {
+            handleError(err as Error, "Failed to rename file.");
+        } finally {
+            setIsEditing(false);
+        }
+    }
+
+    const handleDeleteFile = async (fileId: string, refetch: () => void) => {
+        try {
+            await FileService.delete(fileId);
+            refetch();
+            toast.success("File deleted successfully!");
+        } catch (err) {
+            handleError(err as Error, "Failed to delete file.");
+        }
+    }
+
     const clearFileCreateForm = () => {
         setNewFileName("");
         setNewFileContent("");
@@ -55,7 +81,14 @@ export const useFiles = () => {
         setIsFileCreating,
         clearFileCreateForm,
 
+        editFileName,
+        setEditFileName,
+        isEditing,
+        setIsEditing,
+
         handleUploadFiles,
         handleCreateFile,
+        handleRenameFile,
+        handleDeleteFile,
     }
 }
