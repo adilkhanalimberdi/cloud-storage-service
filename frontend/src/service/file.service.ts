@@ -1,13 +1,26 @@
-import type {FileResponse} from "../types/file.ts";
+import type {FileCreateRequest, FileResponse, RenameFileRequest} from "../types/file.ts";
 import {api} from "./api.ts";
 
 export const FileService = {
+    async create(fileName: string, content: string, folderId: string): Promise<FileResponse> {
+        const payload: FileCreateRequest = {
+            fileName: fileName,
+            content: content,
+        }
+        const response = await api.post("/files", payload, {
+            params: {
+                "folderId": folderId,
+            }
+        });
+        return response.data.data;
+    },
+
     async upload(files: File[], folderId: string): Promise<FileResponse> {
         const payload = new FormData();
         files.forEach(file => {
             payload.append("files", file);
         })
-        const response = await api.post("/files", payload, {
+        const response = await api.post("/files/upload", payload, {
             headers: {
                 "Content-Type": "multipart/form-data",
             },
@@ -16,5 +29,17 @@ export const FileService = {
             }
         });
         return response.data.data;
+    },
+
+    async rename(id: string, fileName: string): Promise<FileResponse> {
+        const payload: RenameFileRequest = {
+            fileName: fileName
+        }
+        const response = await api.patch(`/files/${id}/rename`, payload);
+        return response.data.data;
+    },
+
+    async delete(id: string): Promise<void> {
+        await api.delete(`/files/${id}`);
     }
 }

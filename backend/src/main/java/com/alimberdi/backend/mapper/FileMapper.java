@@ -14,6 +14,8 @@ import java.util.List;
 )
 public interface FileMapper {
 
+	FileResponse toResponse(File file);
+
 	List<FileResponse> toResponseList(List<File> files);
 
 }

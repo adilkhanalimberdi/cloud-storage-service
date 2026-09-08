@@ -1,9 +1,12 @@
 package com.alimberdi.backend.controller;
 
+import com.alimberdi.backend.dto.request.FileCreateRequest;
+import com.alimberdi.backend.dto.request.RenameFileRequest;
 import com.alimberdi.backend.dto.response.ApiResponse;
 import com.alimberdi.backend.dto.response.FileResponse;
 import com.alimberdi.backend.model.entity.CustomUserDetails;
 import com.alimberdi.backend.service.FileService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -22,8 +25,19 @@ public class FileController {
 
 	private final FileService fileService;
 
-	@PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	public ResponseEntity<ApiResponse<List<FileResponse>>> uploadFile(
+	@PostMapping
+	public ResponseEntity<ApiResponse<FileResponse>> create(
+			@AuthenticationPrincipal CustomUserDetails userDetails,
+			@RequestBody FileCreateRequest request,
+			@RequestParam("folderId") UUID folderId
+	) {
+		return ResponseEntity
+				.status(HttpStatus.CREATED)
+				.body(new ApiResponse<>(fileService.createFile(userDetails, request, folderId)));
+	}
+
+	@PostMapping(name = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public ResponseEntity<ApiResponse<List<FileResponse>>> upload(
 			@AuthenticationPrincipal CustomUserDetails userDetails,
 			@RequestParam("files") List<MultipartFile> files,
 			@RequestParam("folderId") UUID folderId
@@ -31,6 +45,26 @@ public class FileController {
 		return ResponseEntity
 				.status(HttpStatus.OK)
 				.body(new ApiResponse<>(fileService.uploadFile(userDetails, files, folderId)));
+	}
+
+	@PatchMapping("/{id}/rename")
+	public ResponseEntity<ApiResponse<FileResponse>> rename(
+			@AuthenticationPrincipal CustomUserDetails userDetails,
+			@PathVariable UUID id,
+			@RequestBody @Valid RenameFileRequest request
+	) {
+		return ResponseEntity
+				.status(HttpStatus.OK)
+				.body(new ApiResponse<>(fileService.rename(userDetails, id, request)));
+	}
+
+	@DeleteMapping("/{id}")
+	public ResponseEntity<Void> delete(
+			@AuthenticationPrincipal CustomUserDetails userDetails,
+			@PathVariable UUID id
+	) {
+		fileService.delete(userDetails, id);
+		return ResponseEntity.noContent().build();
 	}
 
 }

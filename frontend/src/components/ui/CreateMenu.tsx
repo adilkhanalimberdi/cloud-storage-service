@@ -4,11 +4,12 @@ import { Plus, FolderPlus, Upload, FileText } from "lucide-react";
 interface CreateMenuProps {
     onOpenCreateFolderModal: () => void;
     onOpenCreateTxtModal: () => void;
-    onUploadFiles: (files: FileList, currentFolderId: string) => void;
+    onUploadFiles: (files: FileList, currentFolderId: string, refetch: () => void) => void;
     currentFolderId: string;
+    refetch: () => void;
 }
 
-export function CreateMenu({onOpenCreateFolderModal, onOpenCreateTxtModal, onUploadFiles, currentFolderId}: CreateMenuProps) {
+export function CreateMenu({onOpenCreateFolderModal, onOpenCreateTxtModal, onUploadFiles, currentFolderId, refetch}: CreateMenuProps) {
     const [isOpen, setIsOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -37,7 +38,7 @@ export function CreateMenu({onOpenCreateFolderModal, onOpenCreateTxtModal, onUpl
 
     const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
-            onUploadFiles(e.target.files, currentFolderId);
+            onUploadFiles(e.target.files, currentFolderId, refetch);
             setIsOpen(false);
             e.target.value = "";
         }

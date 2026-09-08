@@ -33,3 +33,9 @@ app:
 
   storage:
     total-space: 16106127360
+
+  minio:
+    bucket: ${MINIO_BUCKET}
+    endpoint: ${MINIO_ENDPOINT}
+    username: ${MINIO_ROOT_USER}
+    password: ${MINIO_ROOT_PASSWORD}
