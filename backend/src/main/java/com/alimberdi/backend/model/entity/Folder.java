@@ -44,12 +44,15 @@ public class Folder {
 	private List<Folder> subfolders = new ArrayList<>();
 
 	@Builder.Default
-	@OneToMany(mappedBy = "folder", fetch = FetchType.EAGER, cascade =  CascadeType.ALL)
+	@OneToMany(mappedBy = "folder", fetch = FetchType.EAGER, cascade =  CascadeType.ALL, orphanRemoval = true)
 	private List<File> files = new ArrayList<>();
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "user_id", nullable = false)
 	private User user;
+
+	@Column(name = "is_trash_can", nullable = false)
+	private boolean isTrashCan = false;
 
 	@CreatedDate
 	@Column(nullable = false, updatable = false)

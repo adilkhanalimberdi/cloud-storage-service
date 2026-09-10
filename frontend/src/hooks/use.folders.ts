@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { handleError } from "../utils/error.handler.ts";
 import toast from "react-hot-toast";
 import type { FolderResponse } from "../types/folder.ts";
@@ -23,23 +23,16 @@ export const useFolders = () => {
     const [currentFolder, setCurrentFolder] = useState<FolderResponse | null>(null);
     const [folderStack, setFolderStack] = useState<FolderResponse[]>([]);
 
+    const currentFolderRef = useRef<FolderResponse | null>(null);
+    currentFolderRef.current = currentFolder;
+    const activeRootFolderRef = useRef<FolderResponse | null>(null);
+    activeRootFolderRef.current = activeRootFolder;
+
     const clearFolderCreateForm = () => {
         setNewFolderName("");
         setNewFolderIcon("DEFAULT");
         setIsSubfolderCreating(false);
     };
-
-    const selectRootFolder = useCallback((folder: FolderResponse | null) => {
-        setActiveRootFolder(folder);
-        setCurrentFolder(folder);
-        if (folder) {
-            setFolderStack([folder]);
-            setParentId(folder.id);
-        } else {
-            setFolderStack([]);
-            setParentId(null);
-        }
-    }, []);
 
     const refetchRootFolders = useCallback(async () => {
         try {
@@ -52,11 +45,35 @@ export const useFolders = () => {
         }
     }, []);
 
-    const refreshCurrentFolder = async () => {
-        if (!currentFolder?.id) return;
+    const selectRootFolder = useCallback(async (folder: FolderResponse | null) => {
+        setActiveRootFolder(folder);
+        setCurrentFolder(folder);
+        if (folder) {
+            setFolderStack([folder]);
+            setParentId(folder.id);
+            try {
+                const freshFolder = await FolderService.getById(folder.id);
+                setCurrentFolder(freshFolder);
+                setActiveRootFolder(freshFolder);
+                setFolderStack([freshFolder]);
+                setFolders((prev) =>
+                    prev ? prev.map((f) => (f.id === freshFolder.id ? freshFolder : f)) : [freshFolder]
+                );
+            } catch (err) {
+                console.error(err);
+            }
+        } else {
+            setFolderStack([]);
+            setParentId(null);
+        }
+    }, []);
+
+    const refreshCurrentFolder = useCallback(async () => {
+        const targetId = currentFolderRef.current?.id;
+        if (!targetId) return;
 
         try {
-            const freshFolder = await FolderService.getById(currentFolder.id);
+            const freshFolder = await FolderService.getById(targetId);
 
             setCurrentFolder(freshFolder);
 
@@ -66,25 +83,51 @@ export const useFolders = () => {
                 updated[updated.length - 1] = freshFolder;
                 return updated;
             });
+
+            if (freshFolder.isRoot) {
+                setActiveRootFolder(freshFolder);
+                setFolders((prev) =>
+                    prev ? prev.map((f) => (f.id === freshFolder.id ? freshFolder : f)) : [freshFolder]
+                );
+            }
         } catch (err) {
             console.error(err);
             const rootData = await refetchRootFolders();
-            if (rootData && activeRootFolder) {
-                const freshRoot = rootData.find((f) => f.id === activeRootFolder.id);
+            if (rootData && activeRootFolderRef.current) {
+                const freshRoot = rootData.find((f) => f.id === activeRootFolderRef.current?.id);
                 if (freshRoot) {
                     setActiveRootFolder(freshRoot);
                 }
             }
         }
-    };
+    }, [refetchRootFolders]);
 
-    const navigateToSubfolder = (subfolder: FolderResponse) => {
+    const refetchAll = useCallback(async () => {
+        await Promise.all([
+            refreshCurrentFolder(),
+            refetchRootFolders(),
+        ]);
+    }, [refreshCurrentFolder, refetchRootFolders]);
+
+    const navigateToSubfolder = async (subfolder: FolderResponse) => {
         setCurrentFolder(subfolder);
         setFolderStack((prev) => [...prev, subfolder]);
         setParentId(subfolder.id);
+        try {
+            const freshFolder = await FolderService.getById(subfolder.id);
+            setCurrentFolder(freshFolder);
+            setFolderStack((prev) => {
+                if (prev.length === 0) return [freshFolder];
+                const updated = [...prev];
+                updated[updated.length - 1] = freshFolder;
+                return updated;
+            });
+        } catch (err) {
+            console.error(err);
+        }
     };
 
-    const navigateToBreadcrumb = (index: number) => {
+    const navigateToBreadcrumb = async (index: number) => {
         const targetFolder = folderStack[index];
         if (!targetFolder) return;
 
@@ -92,9 +135,20 @@ export const useFolders = () => {
         setFolderStack(updatedStack);
         setCurrentFolder(targetFolder);
         setParentId(targetFolder.id);
+        try {
+            const freshFolder = await FolderService.getById(targetFolder.id);
+            setCurrentFolder(freshFolder);
+            setFolderStack((prev) => {
+                const copy = [...prev];
+                copy[copy.length - 1] = freshFolder;
+                return copy;
+            });
+        } catch (err) {
+            console.error(err);
+        }
     };
 
-    const navigateUp = () => {
+    const navigateUp = async () => {
         if (folderStack.length <= 1) return;
 
         const updatedStack = folderStack.slice(0, -1);
@@ -103,6 +157,17 @@ export const useFolders = () => {
         setFolderStack(updatedStack);
         setCurrentFolder(previousFolder);
         setParentId(previousFolder.id);
+        try {
+            const freshFolder = await FolderService.getById(previousFolder.id);
+            setCurrentFolder(freshFolder);
+            setFolderStack((prev) => {
+                const copy = [...prev];
+                copy[copy.length - 1] = freshFolder;
+                return copy;
+            });
+        } catch (err) {
+            console.error(err);
+        }
     };
 
     const handleCreateRootFolder = async () => {
@@ -198,7 +263,8 @@ export const useFolders = () => {
         setIsSubfolderCreating,
         clearFolderCreateForm,
 
-        refetch: refreshCurrentFolder,
+        refetch: refetchAll,
+        refetchAll,
         refetchRootFolders,
         refreshCurrentFolder,
         handleCreateRootFolder,

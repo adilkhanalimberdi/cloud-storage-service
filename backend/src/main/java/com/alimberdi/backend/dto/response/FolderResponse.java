@@ -13,5 +13,6 @@ public record FolderResponse(
 		boolean isRoot,
 		List<FolderResponse> subfolders,
 		List<FileResponse> files,
+		boolean isTrashCan,
 		Instant createdAt
 ) {}

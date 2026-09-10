@@ -39,3 +39,4 @@ app:
     endpoint: ${MINIO_ENDPOINT}
     username: ${MINIO_ROOT_USER}
     password: ${MINIO_ROOT_PASSWORD}
+    download-link-expiration-minutes: 10

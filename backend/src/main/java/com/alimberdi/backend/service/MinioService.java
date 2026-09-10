@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.InputStream;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -17,7 +19,28 @@ public class MinioService {
 	@Value("${app.minio.bucket}")
 	private String minioBucket;
 
+	@Value("${app.minio.download-link-expiration-minutes}")
+	private int downloadLinkExpirationMinutes;
+
 	private final MinioClient minioClient;
+
+	public String generateDownloadUrl(String objectKey, String fileName) {
+		try {
+			Map<String, String> extraQueryParams = Map.of("response-content-disposition", "attachment; filename=\"" + fileName + "\"");
+
+			return minioClient.getPresignedObjectUrl(
+					GetPresignedObjectUrlArgs.builder()
+							.method(Http.Method.GET)
+							.bucket(minioBucket)
+							.object(objectKey)
+							.expiry(downloadLinkExpirationMinutes, TimeUnit.MINUTES)
+							.extraQueryParams(extraQueryParams)
+							.build()
+			);
+		} catch (Exception ex) {
+			throw new MinioException("Failed to generate download URL for file: " + objectKey, ex);
+		}
+	}
 
 	public void uploadFile(String objectKey, InputStream stream, long size, String contentType) {
 		ensureBucketExists();

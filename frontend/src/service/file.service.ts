@@ -1,7 +1,17 @@
-import type {FileCreateRequest, FileResponse, RenameFileRequest} from "../types/file.ts";
+import type {
+    FileCreateRequest,
+    FileDownloadUrlResponse,
+    FileResponse,
+    RenameFileRequest
+} from "../types/file.ts";
 import {api} from "./api.ts";
 
 export const FileService = {
+    async getDownloadUrl(id: string): Promise<FileDownloadUrlResponse> {
+        const response = await api.get(`/files/${id}/download-url`);
+        return response.data.data;
+    },
+
     async create(fileName: string, content: string, folderId: string): Promise<FileResponse> {
         const payload: FileCreateRequest = {
             fileName: fileName,
@@ -37,6 +47,10 @@ export const FileService = {
         }
         const response = await api.patch(`/files/${id}/rename`, payload);
         return response.data.data;
+    },
+
+    async softDelete(id: string): Promise<void> {
+        await api.delete(`/files/${id}/soft`);
     },
 
     async delete(id: string): Promise<void> {

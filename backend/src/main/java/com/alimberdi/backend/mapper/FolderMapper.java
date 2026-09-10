@@ -16,6 +16,7 @@ import java.util.List;
 public interface FolderMapper {
 
 	@Mapping(target = "isRoot", source = "root")
+	@Mapping(target = "isTrashCan", source = "trashCan")
 	FolderResponse toResponse(Folder folder);
 
 	List<FolderResponse> toResponseList(List<Folder> folder);
