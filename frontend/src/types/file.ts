@@ -20,3 +20,7 @@ export type FileResponse = {
     updatedAt: Date;
     createdAt: Date;
 }
+
+export type FileDownloadUrlResponse = {
+    url: string;
+}

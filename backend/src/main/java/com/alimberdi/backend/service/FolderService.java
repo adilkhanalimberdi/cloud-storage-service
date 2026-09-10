@@ -32,9 +32,9 @@ public class FolderService {
 	private final ApplicationEventPublisher eventPublisher;
 
 	private static final List<Folder> DEFAULTS = List.of(
-			Folder.builder().name("Primary").icon(FolderIcon.DEFAULT).isRoot(true).build(),
-			Folder.builder().name("Starred").icon(FolderIcon.STAR).isRoot(true).build(),
-			Folder.builder().name("Trash can").icon(FolderIcon.TRASH).isRoot(true).build()
+			Folder.builder().name("Primary").icon(FolderIcon.DEFAULT).isRoot(true).isTrashCan(false).build(),
+			Folder.builder().name("Starred").icon(FolderIcon.STAR).isRoot(true).isTrashCan(false).build(),
+			Folder.builder().name("Trash can").icon(FolderIcon.TRASH).isRoot(true).isTrashCan(true).build()
 	);
 
 	public List<FolderResponse> getAll(CustomUserDetails userDetails, boolean isRoot) {
@@ -58,6 +58,11 @@ public class FolderService {
 				.orElseThrow(() -> new ResourceNotFoundException("Folder with id " + id + " not found."));
 	}
 
+	public Folder getTrashCanForUserId(UUID userId) {
+		return folderRepository.findTrashCanByUserId(userId)
+				.orElseThrow(() -> new ResourceNotFoundException("Trash can folder not found for user with id " + userId));
+	}
+
 	@Transactional(rollbackFor = Exception.class)
 	public FolderResponse create(CustomUserDetails userDetails, FolderCreateRequest request) {
 		User user = userService.getByUsername(userDetails.getUsername());
@@ -77,6 +82,7 @@ public class FolderService {
 				.isRoot(request.parentId() == null)
 				.parent(parent)
 				.user(user)
+				.isTrashCan(false)
 				.build();
 
 		Folder created = folderRepository.save(folder);
@@ -93,6 +99,7 @@ public class FolderService {
 						.icon(folder.getIcon())
 						.isRoot(folder.isRoot())
 						.user(user)
+						.isTrashCan(folder.isTrashCan())
 						.build())
 				.toList();
 		folderRepository.saveAll(foldersToSave);

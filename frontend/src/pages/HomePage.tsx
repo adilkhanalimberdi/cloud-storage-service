@@ -13,6 +13,8 @@ import {CreateMenu} from "../components/ui/CreateMenu.tsx";
 import {StorageWidget} from "../components/features/storage/StorageWidget.tsx";
 import {FolderCreateModal} from "../components/features/folders/FolderCreateModal.tsx";
 import {FileCreateModal} from "../components/features/files/FileCreateModal.tsx";
+import {FileRenameModal} from "../components/features/files/FileRenameModal.tsx";
+import {FileDeleteModal} from "../components/features/files/FileDeleteModal.tsx";
 import {useFiles} from "../hooks/use.files.ts";
 
 function HomePage() {
@@ -50,8 +52,25 @@ function HomePage() {
         setIsFileCreating,
         clearFileCreateForm,
 
+        editFileName,
+        setEditFileName,
+        isEditing,
+        isFileRenaming,
+        renamingFile,
+        openRenameModal,
+        closeRenameModal,
+
+        isFileDeleting,
+        deletingFile,
+        isDeleting,
+        openDeleteModal,
+        closeDeleteModal,
+
         handleUploadFiles,
         handleCreateFile,
+        handleRenameFile,
+        handleDeleteFile,
+        handleOpenFileDownloadUrl,
     } = useFiles();
 
     return (
@@ -143,7 +162,10 @@ function HomePage() {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                     {currentFolder?.files.map((file: FileResponse) => (
                                         <FileCard file={file}
-                                                  key={file.id} />
+                                                  key={file.id}
+                                                  handleRenameFile={() => openRenameModal(file)}
+                                                  handleDeleteFile={() => openDeleteModal(file)}
+                                                  handleDownloadFile={() => handleOpenFileDownloadUrl(file.id)} />
                                     ))}
                                 </div>
                             </section>
@@ -178,6 +200,20 @@ function HomePage() {
                              setContent={setNewFileContent}
                              onSubmit={() => handleCreateFile(currentFolder?.id, refetch)}
                              clearForm={clearFileCreateForm} />
+
+            <FileRenameModal isOpen={isFileRenaming}
+                             onClose={closeRenameModal}
+                             fileName={editFileName}
+                             setFileName={setEditFileName}
+                             onSubmit={() => handleRenameFile(renamingFile?.id, refetch)}
+                             isLoading={isEditing} />
+
+            <FileDeleteModal isOpen={isFileDeleting}
+                             onClose={closeDeleteModal}
+                             file={deletingFile}
+                             isTrashCan={currentFolder?.isTrashCan ?? false}
+                             onSubmit={() => handleDeleteFile(deletingFile?.id, currentFolder?.isTrashCan ?? false, refetch)}
+                             isLoading={isDeleting} />
         </div>
     );
 }

@@ -8,6 +8,7 @@ export type FolderResponse = {
     isRoot: boolean;
     subfolders: FolderResponse[];
     files: FileResponse[];
+    isTrashCan: boolean;
     createdAt: Date;
 }
 

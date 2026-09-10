@@ -3,6 +3,7 @@ package com.alimberdi.backend.controller;
 import com.alimberdi.backend.dto.request.FileCreateRequest;
 import com.alimberdi.backend.dto.request.RenameFileRequest;
 import com.alimberdi.backend.dto.response.ApiResponse;
+import com.alimberdi.backend.dto.response.FileDownloadUrlResponse;
 import com.alimberdi.backend.dto.response.FileResponse;
 import com.alimberdi.backend.model.entity.CustomUserDetails;
 import com.alimberdi.backend.service.FileService;
@@ -25,6 +26,16 @@ public class FileController {
 
 	private final FileService fileService;
 
+	@GetMapping("/{id}/download-url")
+	public ResponseEntity<ApiResponse<FileDownloadUrlResponse>> getDownloadUrl(
+			@AuthenticationPrincipal CustomUserDetails userDetails,
+			@PathVariable UUID id
+	) {
+		return ResponseEntity
+				.status(HttpStatus.OK)
+				.body(new ApiResponse<>(fileService.getDownloadUrl(userDetails, id)));
+	}
+
 	@PostMapping
 	public ResponseEntity<ApiResponse<FileResponse>> create(
 			@AuthenticationPrincipal CustomUserDetails userDetails,
@@ -36,7 +47,7 @@ public class FileController {
 				.body(new ApiResponse<>(fileService.createFile(userDetails, request, folderId)));
 	}
 
-	@PostMapping(name = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	@PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ResponseEntity<ApiResponse<List<FileResponse>>> upload(
 			@AuthenticationPrincipal CustomUserDetails userDetails,
 			@RequestParam("files") List<MultipartFile> files,
@@ -56,6 +67,15 @@ public class FileController {
 		return ResponseEntity
 				.status(HttpStatus.OK)
 				.body(new ApiResponse<>(fileService.rename(userDetails, id, request)));
+	}
+
+	@DeleteMapping("/{id}/soft")
+	public ResponseEntity<Void> softlyDelete(
+			@AuthenticationPrincipal CustomUserDetails userDetails,
+			@PathVariable UUID id
+	) {
+		fileService.softlyDelete(userDetails, id);
+		return ResponseEntity.noContent().build();
 	}
 
 	@DeleteMapping("/{id}")

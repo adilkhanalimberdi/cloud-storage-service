@@ -1,0 +1,2 @@
+ALTER TABLE folders
+ADD COLUMN is_trash_can BOOLEAN NOT NULL DEFAULT false;
