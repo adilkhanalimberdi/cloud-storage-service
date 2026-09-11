@@ -1,34 +1,48 @@
 import { useState, useRef, useEffect } from "react";
-import { Download, EllipsisVertical, Pencil, Trash2 } from "lucide-react";
+import { Download, EllipsisVertical, FolderInput, Pencil, RotateCcw, Trash2 } from "lucide-react";
 import type { FileResponse } from "../../../types/file.ts";
 import { iconMap } from "../../../utils/icon.utils.ts";
 import { getFileSize } from "../../../utils/file.size.utils.ts";
+import { FileService } from "../../../service/file.service.ts";
+import { handleError } from "../../../utils/error.handler.ts";
+import toast from "react-hot-toast";
 
 interface FileCardProps {
     file: FileResponse;
+    isTrashCan?: boolean;
     handleRenameFile?: (file: FileResponse) => void;
     handleDeleteFile?: (file: FileResponse) => void;
     handleDownloadFile?: (file: FileResponse) => void;
+    handleMoveFile?: (file: FileResponse) => void;
     handleOpenFileDownloadUrl?: (file: FileResponse) => void;
+    handleRestoreFile?: (file: FileResponse) => void;
     onRename?: (file: FileResponse) => void;
     onDelete?: (file: FileResponse) => void;
     onDownload?: (file: FileResponse) => void;
+    onMove?: (file: FileResponse) => void;
+    onRestore?: (file: FileResponse) => void;
     onClick?: (file: FileResponse) => void;
 }
 
 export function FileCard({
     file,
+    isTrashCan,
     handleRenameFile,
     handleDeleteFile,
     handleDownloadFile,
+    handleMoveFile,
     handleOpenFileDownloadUrl,
+    handleRestoreFile,
     onRename,
     onDelete,
     onDownload,
+    onMove,
+    onRestore,
     onClick,
 }: FileCardProps) {
     const [isOpen, setIsOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
+    const isInTrashCan = Boolean(isTrashCan ?? file.isTrashCan);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -71,6 +85,33 @@ export function FileCard({
             onDownload(file);
         } else if (handleOpenFileDownloadUrl) {
             handleOpenFileDownloadUrl(file);
+        }
+    };
+
+    const onMoveClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsOpen(false);
+        if (handleMoveFile) {
+            handleMoveFile(file);
+        } else if (onMove) {
+            onMove(file);
+        }
+    };
+
+    const onRestoreClick = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsOpen(false);
+        if (handleRestoreFile) {
+            handleRestoreFile(file);
+        } else if (onRestore) {
+            onRestore(file);
+        } else {
+            try {
+                await FileService.restore(file.id);
+                toast.success("File restored successfully!");
+            } catch (err) {
+                handleError(err as Error, "Failed to restore file.");
+            }
         }
     };
 
@@ -122,6 +163,24 @@ export function FileCard({
                                 <Download size={15} className="text-emerald-500" />
                                 <span>Download</span>
                             </button>
+
+                            {!isInTrashCan && (
+                                <button type="button"
+                                        onClick={onMoveClick}
+                                        className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-800/80 transition-colors text-left">
+                                    <FolderInput size={15} className="text-amber-500" />
+                                    <span>Move</span>
+                                </button>
+                            )}
+
+                            {isInTrashCan && (
+                                <button type="button"
+                                        onClick={onRestoreClick}
+                                        className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-800/80 transition-colors text-left">
+                                    <RotateCcw size={15} className="text-indigo-500" />
+                                    <span>Restore</span>
+                                </button>
+                            )}
 
                             <div className="my-1 border-t border-gray-100 dark:border-zinc-800" />
 

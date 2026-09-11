@@ -18,15 +18,19 @@ export const useFolders = () => {
 
     const [isRootFolderCreating, setIsRootFolderCreating] = useState<boolean>(false);
     const [isCreating, setIsCreating] = useState<boolean>(false);
+    const [isDeletingFolder, setIsDeletingFolder] = useState<boolean>(false);
 
     const [activeRootFolder, setActiveRootFolder] = useState<FolderResponse | null>(null);
     const [currentFolder, setCurrentFolder] = useState<FolderResponse | null>(null);
     const [folderStack, setFolderStack] = useState<FolderResponse[]>([]);
 
     const currentFolderRef = useRef<FolderResponse | null>(null);
-    currentFolderRef.current = currentFolder;
     const activeRootFolderRef = useRef<FolderResponse | null>(null);
-    activeRootFolderRef.current = activeRootFolder;
+
+    useEffect(() => {
+        currentFolderRef.current = currentFolder;
+        activeRootFolderRef.current = activeRootFolder;
+    }, [currentFolder, activeRootFolder]);
 
     const clearFolderCreateForm = () => {
         setNewFolderName("");
@@ -206,6 +210,70 @@ export const useFolders = () => {
         }
     };
 
+    const handleDeleteFolder = async (folderId?: string): Promise<boolean> => {
+        const targetId = folderId ?? currentFolder?.id;
+        if (!targetId) return false;
+
+        setIsDeletingFolder(true);
+        try {
+            await FolderService.delete(targetId);
+            toast.success("Folder deleted successfully!");
+
+            if (currentFolder?.id === targetId) {
+                if (folderStack.length > 1) {
+                    const updatedStack = folderStack.slice(0, -1);
+                    const parentFolder = updatedStack[updatedStack.length - 1];
+
+                    setFolderStack(updatedStack);
+                    setCurrentFolder(parentFolder);
+                    setParentId(parentFolder.id);
+
+                    try {
+                        const freshParent = await FolderService.getById(parentFolder.id);
+                        setCurrentFolder(freshParent);
+                        setFolderStack((prev) => {
+                            if (prev.length === 0) return [freshParent];
+                            const copy = [...prev];
+                            copy[copy.length - 1] = freshParent;
+                            return copy;
+                        });
+
+                        if (freshParent.isRoot) {
+                            setActiveRootFolder(freshParent);
+                            setFolders((prev) =>
+                                prev ? prev.map((f) => (f.id === freshParent.id ? freshParent : f)) : [freshParent]
+                            );
+                        }
+                    } catch (err) {
+                        console.error(err);
+                    }
+                    await refetchRootFolders();
+                } else {
+                    const freshRoots = await refetchRootFolders();
+                    const remainingRoots = freshRoots?.filter((f) => f.id !== targetId) ?? [];
+                    if (remainingRoots.length > 0) {
+                        await selectRootFolder(remainingRoots[0]);
+                    } else {
+                        setActiveRootFolder(null);
+                        setCurrentFolder(null);
+                        setFolderStack([]);
+                        setParentId(null);
+                        setFolders([]);
+                    }
+                }
+            } else {
+                await refreshCurrentFolder();
+                await refetchRootFolders();
+            }
+            return true;
+        } catch (err) {
+            handleError(err as Error, "Failed to delete folder.");
+            return false;
+        } finally {
+            setIsDeletingFolder(false);
+        }
+    };
+
     useEffect(() => {
         let ignore = false;
 
@@ -252,6 +320,7 @@ export const useFolders = () => {
         isLoading,
         isRootFolderCreating,
         isCreating,
+        isDeletingFolder,
 
         newFolderName,
         setNewFolderName,
@@ -269,6 +338,7 @@ export const useFolders = () => {
         refreshCurrentFolder,
         handleCreateRootFolder,
         handleCreateFolder,
+        handleDeleteFolder,
         navigateToSubfolder,
         navigateToBreadcrumb,
         navigateUp,

@@ -20,7 +20,8 @@ public enum SupportedFileExtension {
 	JPEG("jpeg", "image/jpeg", FileIcon.IMG, 5 * 1024 * 1024L, false),
 	WEBP("webp", "image/webp", FileIcon.IMG, 5 * 1024 * 1024L, false),
 
-	PDF("pdf", "application/pdf", FileIcon.PDF, 20 * 1024 * 1024L, false);
+	PDF("pdf", "application/pdf", FileIcon.PDF, 20 * 1024 * 1024L, false),
+	ZIP("zip", "application/x-zip-compressed", FileIcon.ZIP, 50 * 1024 * 1024L, false);
 
 	private final String extension;
 	private final String mimeType;

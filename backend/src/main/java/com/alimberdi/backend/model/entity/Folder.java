@@ -54,6 +54,9 @@ public class Folder {
 	@Column(name = "is_trash_can", nullable = false)
 	private boolean isTrashCan = false;
 
+	@Column(name = "is_primary", nullable = false)
+	private boolean isPrimary = false;
+
 	@CreatedDate
 	@Column(nullable = false, updatable = false)
 	private Instant createdAt;

@@ -92,7 +92,7 @@ export function CreateMenu({onOpenCreateFolderModal, onOpenCreateTxtModal, onUpl
                             }}
                             className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-800/80 transition-colors">
                         <FileText size={16} className="text-amber-500" />
-                        <span>Text document (.txt)</span>
+                        <span>Create file</span>
                     </button>
                 </div>
             )}

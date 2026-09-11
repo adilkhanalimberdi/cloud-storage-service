@@ -4,8 +4,11 @@ import {handleError} from "../utils/error.handler.ts";
 import toast from "react-hot-toast";
 import {validate} from "../utils/file.size.utils.ts";
 import type {FileResponse} from "../types/file.ts";
+import {useStorage} from "./use.storage.ts";
 
 export const useFiles = () => {
+    const { setUsedSpace } = useStorage();
+
     const [newFileName, setNewFileName] = useState<string>("");
     const [newFileContent, setNewFileContent] = useState<string>("");
     const [isFileCreating, setIsFileCreating] = useState<boolean>(false);
@@ -39,14 +42,18 @@ export const useFiles = () => {
     const handleCreateFile = async (folderId: string | undefined, refetch: () => void) => {
         if (!folderId) return;
         try {
-            await FileService.create(newFileName, newFileContent, folderId);
+            const createdFile = await FileService.create(newFileName, newFileContent, folderId);
+            const createdFileSize = createdFile?.size !== undefined
+                ? Number(createdFile.size)
+                : new Blob([newFileContent]).size;
+            setUsedSpace((prev) => prev + createdFileSize);
             refetch();
             setIsFileCreating(false);
             toast.success("File created successfully!");
         } catch (err) {
             handleError(err as Error, "Failed to create file.");
         }
-    }
+    };
 
     const handleUploadFiles = async (files: FileList, folderId: string, refetch: () => void) => {
         const uploadedFiles: File[] = Array.from(files);
@@ -61,6 +68,8 @@ export const useFiles = () => {
 
         try {
             await FileService.upload(uploadedFiles, folderId);
+            const totalUploadedBytes = uploadedFiles.reduce((acc, file) => acc + file.size, 0);
+            setUsedSpace((prev) => prev + totalUploadedBytes);
             refetch();
             toast.success("Files uploaded successfully!");
         } catch (err) {
@@ -107,7 +116,7 @@ export const useFiles = () => {
     };
 
     const handleDeleteFile = async (
-        fileId?: string,
+        fileIdOrFile?: string | FileResponse,
         isTrashCanOrRefetch?: boolean | (() => void),
         maybeRefetch?: () => void
     ) => {
@@ -121,8 +130,13 @@ export const useFiles = () => {
             refetch = isTrashCanOrRefetch;
         }
 
-        const targetId = fileId ?? deletingFile?.id;
+        const targetId = typeof fileIdOrFile === "string"
+            ? fileIdOrFile
+            : (fileIdOrFile?.id ?? deletingFile?.id);
         if (!targetId) return;
+
+        const targetFile = (typeof fileIdOrFile === "object" ? fileIdOrFile : null) ??
+            (deletingFile?.id === targetId ? deletingFile : null);
 
         setIsDeleting(true);
         try {
@@ -132,6 +146,10 @@ export const useFiles = () => {
             } else {
                 await FileService.softDelete(targetId);
                 toast.success("File moved to trash!");
+            }
+            if (targetFile?.size !== undefined) {
+                const deletedSize = Number(targetFile.size);
+                setUsedSpace((prev) => Math.max(0, prev - deletedSize));
             }
             if (refetch) await refetch();
             closeDeleteModal();
@@ -145,6 +163,43 @@ export const useFiles = () => {
         }
     };
 
+    const [isFileMoving, setIsFileMoving] = useState<boolean>(false);
+    const [movingFile, setMovingFile] = useState<FileResponse | null>(null);
+    const [isMoving, setIsMoving] = useState<boolean>(false);
+
+    const openMoveModal = (file: FileResponse) => {
+        setMovingFile(file);
+        setIsFileMoving(true);
+    };
+
+    const closeMoveModal = () => {
+        setIsFileMoving(false);
+        setMovingFile(null);
+    };
+
+    const handleMoveFile = async (
+        fileId?: string,
+        folderId?: string,
+        refetch?: () => void
+    ): Promise<boolean> => {
+        const targetId = fileId ?? movingFile?.id;
+        if (!targetId || !folderId) return false;
+
+        setIsMoving(true);
+        try {
+            await FileService.move(targetId, folderId);
+            toast.success("File moved successfully!");
+            if (refetch) refetch();
+            closeMoveModal();
+            return true;
+        } catch (err) {
+            handleError(err as Error, "Failed to move file.");
+            return false;
+        } finally {
+            setIsMoving(false);
+        }
+    };
+
     const clearFileCreateForm = () => {
         setNewFileName("");
         setNewFileContent("");
@@ -153,6 +208,18 @@ export const useFiles = () => {
     const clearFileRenameForm = () => {
         setEditFileName("");
     }
+
+    const handleRestoreFile = async (fileId?: string, refetch?: () => void) => {
+        if (!fileId) return;
+
+        try {
+            await FileService.restore(fileId);
+            toast.success("File restored successfully!");
+            if (refetch) await refetch();
+        } catch (err) {
+            handleError(err as Error, "Failed to restore file.");
+        }
+    };
 
     return {
         newFileName,
@@ -181,10 +248,20 @@ export const useFiles = () => {
         openDeleteModal,
         closeDeleteModal,
 
+        isFileMoving,
+        setIsFileMoving,
+        movingFile,
+        isMoving,
+        openMoveModal,
+        closeMoveModal,
+
         handleUploadFiles,
         handleCreateFile,
         handleRenameFile,
         handleDeleteFile,
-        handleOpenFileDownloadUrl
+        handleMoveFile,
+        handleRestoreFile,
+        handleOpenFileDownloadUrl,
+        setUsedSpace,
     }
 }

@@ -25,5 +25,9 @@ export const FolderService = {
         }
         const response = await api.post("/folders", payload);
         return response.data.data;
+    },
+
+    async delete(id: string): Promise<void> {
+        await api.delete(`/folders/${id}`);
     }
 }

@@ -1,0 +1,5 @@
+ALTER TABLE files
+ADD COLUMN original_folder_id UUID;
+
+ALTER TABLE files
+ADD CONSTRAINT FK_FILES_ON_ORIGINAL_FOLDER FOREIGN KEY (original_folder_id) REFERENCES folders (id);

@@ -4,6 +4,10 @@ export type RenameFileRequest = {
     fileName: string;
 }
 
+export type FileMoveRequest = {
+    folderId: string;
+}
+
 export type FileCreateRequest = {
     fileName: string;
     content: string;
@@ -19,6 +23,7 @@ export type FileResponse = {
     icon: FileIcon;
     updatedAt: Date;
     createdAt: Date;
+    isTrashCan?: boolean;
 }
 
 export type FileDownloadUrlResponse = {
