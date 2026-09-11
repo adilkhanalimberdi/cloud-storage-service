@@ -112,7 +112,7 @@ public class FolderService {
 		checkFolderAccess(userDetails, folder);
 
 		if (folder.isPrimary()) {
-			throw new AccessDeniedException("You cannot delete the primary folder.");git a
+			throw new AccessDeniedException("You cannot delete the primary folder.");
 		}
 
 		if (folder.isTrashCan()) {
