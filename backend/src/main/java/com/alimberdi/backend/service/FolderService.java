@@ -111,7 +111,11 @@ public class FolderService {
 		Folder folder = getById(id);
 		checkFolderAccess(userDetails, folder);
 
-		if (folder.isTrashCan() || folder.isPrimary()) {
+		if (folder.isPrimary()) {
+			throw new AccessDeniedException("You cannot delete the primary folder.");git a
+		}
+
+		if (folder.isTrashCan()) {
 			throw new AccessDeniedException("You cannot delete the trash can folder.");
 		}
 
