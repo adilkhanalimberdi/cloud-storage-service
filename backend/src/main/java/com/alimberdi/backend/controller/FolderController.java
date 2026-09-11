@@ -1,6 +1,7 @@
 package com.alimberdi.backend.controller;
 
 import com.alimberdi.backend.dto.request.FolderCreateRequest;
+import com.alimberdi.backend.dto.request.FolderMoveRequest;
 import com.alimberdi.backend.dto.response.ApiResponse;
 import com.alimberdi.backend.dto.response.FolderResponse;
 import com.alimberdi.backend.model.entity.CustomUserDetails;
@@ -12,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.awt.print.Pageable;
 import java.util.List;
 import java.util.UUID;
 
@@ -48,6 +50,25 @@ public class FolderController {
 		return ResponseEntity
 				.status(HttpStatus.CREATED)
 				.body(new ApiResponse<>(folderService.create(userDetails, request)));
+	}
+
+	@PostMapping("/{id}/move")
+	public ResponseEntity<ApiResponse<FolderResponse>> move(
+			@AuthenticationPrincipal CustomUserDetails userDetails,
+			@PathVariable UUID id,
+			@RequestBody @Valid FolderMoveRequest request
+	) {
+		return ResponseEntity
+				.ok(new ApiResponse<>(folderService.move(userDetails, id, request)));
+	}
+
+	@DeleteMapping("/{id}")
+	public ResponseEntity<Void> delete(
+			@AuthenticationPrincipal CustomUserDetails userDetails,
+			@PathVariable UUID id
+	) {
+		folderService.delete(userDetails, id);
+		return ResponseEntity.noContent().build();
 	}
 
 }

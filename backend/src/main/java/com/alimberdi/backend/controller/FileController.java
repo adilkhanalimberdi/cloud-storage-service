@@ -1,6 +1,7 @@
 package com.alimberdi.backend.controller;
 
 import com.alimberdi.backend.dto.request.FileCreateRequest;
+import com.alimberdi.backend.dto.request.FileMoveRequest;
 import com.alimberdi.backend.dto.request.RenameFileRequest;
 import com.alimberdi.backend.dto.response.ApiResponse;
 import com.alimberdi.backend.dto.response.FileDownloadUrlResponse;
@@ -44,7 +45,7 @@ public class FileController {
 	) {
 		return ResponseEntity
 				.status(HttpStatus.CREATED)
-				.body(new ApiResponse<>(fileService.createFile(userDetails, request, folderId)));
+				.body(new ApiResponse<>(fileService.create(userDetails, request, folderId)));
 	}
 
 	@PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -55,7 +56,16 @@ public class FileController {
 	) {
 		return ResponseEntity
 				.status(HttpStatus.OK)
-				.body(new ApiResponse<>(fileService.uploadFile(userDetails, files, folderId)));
+				.body(new ApiResponse<>(fileService.upload(userDetails, files, folderId)));
+	}
+
+	@PostMapping("/{id}/restore")
+	public ResponseEntity<Void> restore(
+			@AuthenticationPrincipal CustomUserDetails userDetails,
+			@PathVariable UUID id
+	) {
+		fileService.restore(userDetails, id);
+		return ResponseEntity.noContent().build();
 	}
 
 	@PatchMapping("/{id}/rename")
@@ -69,12 +79,22 @@ public class FileController {
 				.body(new ApiResponse<>(fileService.rename(userDetails, id, request)));
 	}
 
+	@PostMapping("/{id}/move")
+	public ResponseEntity<ApiResponse<FileResponse>> move(
+			@AuthenticationPrincipal CustomUserDetails userDetails,
+			@PathVariable UUID id,
+			@RequestBody @Valid FileMoveRequest request
+	) {
+		return ResponseEntity
+				.ok(new ApiResponse<>(fileService.move(userDetails, id, request)));
+	}
+
 	@DeleteMapping("/{id}/soft")
-	public ResponseEntity<Void> softlyDelete(
+	public ResponseEntity<Void> moveToTrash(
 			@AuthenticationPrincipal CustomUserDetails userDetails,
 			@PathVariable UUID id
 	) {
-		fileService.softlyDelete(userDetails, id);
+		fileService.moveToTrash(userDetails, id);
 		return ResponseEntity.noContent().build();
 	}
 

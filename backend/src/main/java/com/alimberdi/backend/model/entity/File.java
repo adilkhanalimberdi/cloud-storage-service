@@ -52,6 +52,10 @@ public class File {
 	@JoinColumn(name = "folder_id", nullable = false)
 	private Folder folder;
 
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "original_folder_id", nullable = false)
+	private Folder originalFolder;
+
 	@LastModifiedDate
 	@Column(nullable = false, updatable = false)
 	private Instant updatedAt;

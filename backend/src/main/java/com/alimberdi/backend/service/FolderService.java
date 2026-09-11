@@ -2,6 +2,7 @@ package com.alimberdi.backend.service;
 
 import com.alimberdi.backend.dto.event.FolderCreatedEvent;
 import com.alimberdi.backend.dto.request.FolderCreateRequest;
+import com.alimberdi.backend.dto.request.FolderMoveRequest;
 import com.alimberdi.backend.dto.response.FolderResponse;
 import com.alimberdi.backend.exception.ResourceAlreadyExistsException;
 import com.alimberdi.backend.exception.ResourceNotFoundException;
@@ -32,9 +33,9 @@ public class FolderService {
 	private final ApplicationEventPublisher eventPublisher;
 
 	private static final List<Folder> DEFAULTS = List.of(
-			Folder.builder().name("Primary").icon(FolderIcon.DEFAULT).isRoot(true).isTrashCan(false).build(),
-			Folder.builder().name("Starred").icon(FolderIcon.STAR).isRoot(true).isTrashCan(false).build(),
-			Folder.builder().name("Trash can").icon(FolderIcon.TRASH).isRoot(true).isTrashCan(true).build()
+			Folder.builder().name("Primary").icon(FolderIcon.DEFAULT).isRoot(true).isTrashCan(false).isPrimary(true).build(),
+			Folder.builder().name("Starred").icon(FolderIcon.STAR).isRoot(true).isTrashCan(false).isPrimary(false).build(),
+			Folder.builder().name("Trash can").icon(FolderIcon.TRASH).isRoot(true).isTrashCan(true).isPrimary(false).build()
 	);
 
 	public List<FolderResponse> getAll(CustomUserDetails userDetails, boolean isRoot) {
@@ -47,9 +48,7 @@ public class FolderService {
 	public FolderResponse getById(CustomUserDetails userDetails, UUID id) {
 		Folder folder = folderRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("Folder with id " + id + " not found."));
-		if (!folder.getUser().getId().equals(userDetails.getId())) {
-			throw new AccessDeniedException("You cannot perform this action.");
-		}
+		checkFolderAccess(userDetails, folder);
 		return folderMapper.toResponse(folder);
 	}
 
@@ -68,8 +67,8 @@ public class FolderService {
 		User user = userService.getByUsername(userDetails.getUsername());
 		Folder parent = null;
 		if (request.parentId() != null) {
-			parent = folderRepository.findById(request.parentId())
-					.orElseThrow(() -> new ResourceNotFoundException("Parent folder not found."));
+			parent = getById(request.parentId());
+			checkFolderAccess(userDetails, parent);
 		}
 
 		if (folderRepository.existsByNameAndParentAndUser(request.name(), parent, user)) {
@@ -83,6 +82,7 @@ public class FolderService {
 				.parent(parent)
 				.user(user)
 				.isTrashCan(false)
+				.isPrimary(false)
 				.build();
 
 		Folder created = folderRepository.save(folder);
@@ -92,6 +92,32 @@ public class FolderService {
 	}
 
 	@Transactional(rollbackFor = Exception.class)
+	public FolderResponse move(CustomUserDetails userDetails, UUID id, FolderMoveRequest request) {
+		Folder folder = getById(id);
+		checkFolderAccess(userDetails, folder);
+
+		Folder parent = null;
+		if (request.parentId() != null) {
+			parent = getById(request.parentId());
+			checkFolderAccess(userDetails, parent);
+		}
+
+		folder.setParent(parent);
+		return folderMapper.toResponse(folderRepository.save(folder));
+	}
+
+	@Transactional(rollbackFor = Exception.class)
+	public void delete(CustomUserDetails userDetails, UUID id) {
+		Folder folder = getById(id);
+		checkFolderAccess(userDetails, folder);
+
+		if (folder.isTrashCan() || folder.isPrimary()) {
+			throw new AccessDeniedException("You cannot delete the trash can folder.");
+		}
+
+		folderRepository.delete(folder);
+	}
+
 	public void initializeDefaultFolders(User user) {
 		List<Folder> foldersToSave = DEFAULTS.stream()
 				.map(folder -> Folder.builder()
@@ -100,9 +126,16 @@ public class FolderService {
 						.isRoot(folder.isRoot())
 						.user(user)
 						.isTrashCan(folder.isTrashCan())
+						.isPrimary(folder.isPrimary())
 						.build())
 				.toList();
 		folderRepository.saveAll(foldersToSave);
+	}
+
+	private void checkFolderAccess(CustomUserDetails userDetails, Folder folder) {
+		if (!folder.getUser().getId().equals(userDetails.getId())) {
+			throw new AccessDeniedException("You cannot perform this action.");
+		}
 	}
 
 }

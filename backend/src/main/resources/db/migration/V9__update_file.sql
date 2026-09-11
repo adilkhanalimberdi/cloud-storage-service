@@ -1,0 +1,2 @@
+ALTER TABLE files
+ALTER COLUMN object_key TYPE TEXT;

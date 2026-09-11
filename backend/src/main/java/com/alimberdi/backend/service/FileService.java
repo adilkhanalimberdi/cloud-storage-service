@@ -4,6 +4,7 @@ import com.alimberdi.backend.dto.event.FileCreatedEvent;
 import com.alimberdi.backend.dto.event.FileDeletedEvent;
 import com.alimberdi.backend.dto.event.FilesUploadedEvent;
 import com.alimberdi.backend.dto.request.FileCreateRequest;
+import com.alimberdi.backend.dto.request.FileMoveRequest;
 import com.alimberdi.backend.dto.request.RenameFileRequest;
 import com.alimberdi.backend.dto.response.FileDownloadUrlResponse;
 import com.alimberdi.backend.dto.response.FileResponse;
@@ -61,7 +62,7 @@ public class FileService {
 	}
 
 	@Transactional(rollbackFor = Exception.class)
-	public FileResponse createFile(CustomUserDetails userDetails, FileCreateRequest request, UUID folderId) {
+	public FileResponse create(CustomUserDetails userDetails, FileCreateRequest request, UUID folderId) {
 		byte[] contentBytes = request.content().getBytes(StandardCharsets.UTF_8);
 		SupportedFileExtension supportedExtension = TextFileValidator.validate(request.fileName(), contentBytes);
 
@@ -79,6 +80,7 @@ public class FileService {
 				.size((long) contentBytes.length)
 				.icon(supportedExtension.getIcon())
 				.folder(folder)
+				.originalFolder(folder)
 				.build();
 		File created = fileRepository.save(file);
 		eventPublisher.publishEvent(new FileCreatedEvent(created, contentBytes));
@@ -87,7 +89,7 @@ public class FileService {
 	}
 
 	@Transactional(rollbackFor = Exception.class)
-	public List<FileResponse> uploadFile(CustomUserDetails userDetails, List<MultipartFile> files, UUID folderId) {
+	public List<FileResponse> upload(CustomUserDetails userDetails, List<MultipartFile> files, UUID folderId) {
 		files.forEach(FileValidator::validate);
 
 		Folder folder = folderService.getById(folderId);
@@ -113,6 +115,7 @@ public class FileService {
 							.size(file.getSize())
 							.icon(supportedExtension.getIcon())
 							.folder(folder)
+							.originalFolder(folder)
 							.build();
 				})
 				.toList();
@@ -135,14 +138,51 @@ public class FileService {
 	}
 
 	@Transactional(rollbackFor = Exception.class)
-	public void softlyDelete(CustomUserDetails userDetails, UUID id) {
+	public FileResponse move(CustomUserDetails userDetails, UUID id, FileMoveRequest request) {
+		File file = getById(id);
+		Folder currentFolder = file.getFolder();
+		Folder targetFolder = folderService.getById(request.folderId());
+
+		checkFolderAccess(currentFolder, userDetails.getId());
+		checkFolderAccess(targetFolder, userDetails.getId());
+
+		if (currentFolder.isTrashCan() || targetFolder.isTrashCan()) {
+			throw new AccessDeniedException("You cannot move files to or from the trash can.");
+		}
+
+		file.setFolder(targetFolder);
+		return fileMapper.toResponse(fileRepository.save(file));
+	}
+
+	@Transactional(rollbackFor = Exception.class)
+	public void restore(CustomUserDetails userDetails, UUID id) {
+		File file = fileRepository.findByIdForRestore(id)
+				.orElseThrow(() -> new ResourceNotFoundException("File not found: " + id));
+		Folder currentFolder = file.getFolder();
+		checkFolderAccess(currentFolder, userDetails.getId());
+
+		if (!currentFolder.isTrashCan()) {
+			throw new AccessDeniedException("You cannot restore file from this folder.");
+		}
+
+		if (file.getOriginalFolder() == null) {
+			throw new IllegalStateException("Original folder is missing for file: " + id);
+		}
+
+		file.setFolder(file.getOriginalFolder());
+
+		fileRepository.save(file);
+	}
+
+	@Transactional(rollbackFor = Exception.class)
+	public void moveToTrash(CustomUserDetails userDetails, UUID id) {
 		File file = getById(id);
 		Folder folder = file.getFolder();
 
 		checkFolderAccess(folder, userDetails.getId());
 
 		if (folder.isTrashCan()) {
-			throw new AccessDeniedException("You cannot softly delete file from this folder.");
+			throw new AccessDeniedException("You cannot move file to trash from this folder.");
 		}
 
 		Folder trashCan = folderService.getTrashCanForUserId(userDetails.getId());
@@ -165,19 +205,6 @@ public class FileService {
 		String objectKey = file.getObjectKey();
 		folder.getFiles().remove(file);
 		eventPublisher.publishEvent(new FileDeletedEvent(objectKey));
-	}
-
-	public void restore(CustomUserDetails userDetails, UUID id) {
-		File file = getById(id);
-		Folder folder = file.getFolder();
-
-		checkFolderAccess(folder, userDetails.getId());
-
-		if (!folder.isTrashCan()) {
-			throw new AccessDeniedException("You cannot restore file from this folder.");
-		}
-
-		// TODO
 	}
 
 	private String generateObjectKey(UUID userId, UUID folderId, String originalFilename) {

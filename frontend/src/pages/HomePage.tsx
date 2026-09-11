@@ -1,3 +1,4 @@
+import {useState} from "react";
 import {Header} from "../components/layout/Header.tsx";
 import {RootFolder} from "../components/features/folders/RootFolder.tsx";
 import {FolderCard} from "../components/features/folders/FolderCard.tsx";
@@ -12,10 +13,15 @@ import type {FileResponse} from "../types/file.ts";
 import {CreateMenu} from "../components/ui/CreateMenu.tsx";
 import {StorageWidget} from "../components/features/storage/StorageWidget.tsx";
 import {FolderCreateModal} from "../components/features/folders/FolderCreateModal.tsx";
+import {FolderDeleteModal} from "../components/features/folders/FolderDeleteModal.tsx";
+import {FolderEditModal} from "../components/features/folders/FolderEditModal.tsx";
+import {RootFolderCreateModal} from "../components/features/folders/RootFolderCreateModal.tsx";
 import {FileCreateModal} from "../components/features/files/FileCreateModal.tsx";
 import {FileRenameModal} from "../components/features/files/FileRenameModal.tsx";
 import {FileDeleteModal} from "../components/features/files/FileDeleteModal.tsx";
+import {FileMoveModal} from "../components/features/files/FileMoveModal.tsx";
 import {useFiles} from "../hooks/use.files.ts";
+import type {FolderIcon} from "../utils/icon.utils.ts";
 
 function HomePage() {
     const {
@@ -39,6 +45,8 @@ function HomePage() {
         setIsSubfolderCreating,
         handleCreateFolder,
         clearFolderCreateForm,
+        handleDeleteFolder,
+        isDeletingFolder,
 
         refetch,
     } = useFolders();
@@ -66,12 +74,40 @@ function HomePage() {
         openDeleteModal,
         closeDeleteModal,
 
+        isFileMoving,
+        movingFile,
+        isMoving,
+        openMoveModal,
+        closeMoveModal,
+
         handleUploadFiles,
         handleCreateFile,
         handleRenameFile,
         handleDeleteFile,
+        handleMoveFile,
+        handleRestoreFile,
         handleOpenFileDownloadUrl,
     } = useFiles();
+
+    const [isFolderDeleting, setIsFolderDeleting] = useState<boolean>(false);
+    const [isFolderEditing, setIsFolderEditing] = useState<boolean>(false);
+    const [editFolderName, setEditFolderName] = useState<string>("");
+    const [editFolderIcon, setEditFolderIcon] = useState<FolderIcon>("DEFAULT");
+    const [isRootFolderModalOpen, setIsRootFolderModalOpen] = useState<boolean>(false);
+
+    const openEditFolderModal = () => {
+        if (currentFolder) {
+            setEditFolderName(currentFolder.name);
+            setEditFolderIcon(currentFolder.icon);
+            setIsFolderEditing(true);
+        }
+    };
+
+    const closeEditFolderModal = () => {
+        setIsFolderEditing(false);
+        setEditFolderName("");
+        setEditFolderIcon("DEFAULT");
+    };
 
     return (
         <div className="flex flex-col h-screen w-screen overflow-hidden bg-gray-50 dark:bg-zinc-950 text-gray-900 dark:text-zinc-100">
@@ -83,7 +119,7 @@ function HomePage() {
                     <div className="space-y-6">
                         <Button variant="primary"
                                 className="w-full py-3 flex items-center justify-center"
-                                onClick={handleCreateRootFolder}
+                                onClick={() => setIsRootFolderModalOpen(true)}
                                 disabled={isRootFolderCreating}>
                             <Plus size={16} />
                         </Button>
@@ -110,10 +146,14 @@ function HomePage() {
                         {currentFolder && (
                             <div className="flex items-center gap-4">
                                 <div className="flex items-center gap-2">
-                                    <button className="p-2 hover:bg-red-200 dark:hover:bg-red-800 rounded-lg text-gray-600 dark:text-zinc-300">
+                                    <button onClick={() => setIsFolderDeleting(true)}
+                                            className="p-2 hover:bg-red-200 dark:hover:bg-red-800 rounded-lg text-gray-600 dark:text-zinc-300"
+                                            title="Delete folder">
                                         <Trash size={16} />
                                     </button>
-                                    <button className="p-2 hover:bg-gray-200 dark:hover:bg-zinc-800 rounded-lg text-gray-600 dark:text-zinc-300">
+                                    <button onClick={openEditFolderModal}
+                                            className="p-2 hover:bg-gray-200 dark:hover:bg-zinc-800 rounded-lg text-gray-600 dark:text-zinc-300"
+                                            title="Edit folder">
                                         <Pencil size={16} />
                                     </button>
                                     <CreateMenu onOpenCreateFolderModal={() => setIsSubfolderCreating(true)}
@@ -163,9 +203,12 @@ function HomePage() {
                                     {currentFolder?.files.map((file: FileResponse) => (
                                         <FileCard file={file}
                                                   key={file.id}
+                                                  isTrashCan={currentFolder?.isTrashCan}
                                                   handleRenameFile={() => openRenameModal(file)}
                                                   handleDeleteFile={() => openDeleteModal(file)}
-                                                  handleDownloadFile={() => handleOpenFileDownloadUrl(file.id)} />
+                                                  handleMoveFile={() => openMoveModal(file)}
+                                                  handleDownloadFile={() => handleOpenFileDownloadUrl(file.id)}
+                                                  handleRestoreFile={() => handleRestoreFile(file.id, refetch)} />
                                     ))}
                                 </div>
                             </section>
@@ -212,8 +255,58 @@ function HomePage() {
                              onClose={closeDeleteModal}
                              file={deletingFile}
                              isTrashCan={currentFolder?.isTrashCan ?? false}
-                             onSubmit={() => handleDeleteFile(deletingFile?.id, currentFolder?.isTrashCan ?? false, refetch)}
+                             onSubmit={() => handleDeleteFile(deletingFile ?? undefined, currentFolder?.isTrashCan ?? false, refetch)}
                              isLoading={isDeleting} />
+
+            <FileMoveModal isOpen={isFileMoving}
+                           onClose={closeMoveModal}
+                           file={movingFile}
+                           currentFolderId={currentFolder?.id}
+                           onSubmit={async (targetFolderId: string) => {
+                               if (movingFile) {
+                                   await handleMoveFile(movingFile.id, targetFolderId, refetch);
+                               }
+                           }}
+                           isLoading={isMoving} />
+
+            <FolderDeleteModal isOpen={isFolderDeleting}
+                               onClose={() => setIsFolderDeleting(false)}
+                               folder={currentFolder}
+                               onSubmit={async () => {
+                                   if (currentFolder) {
+                                       const success = await handleDeleteFolder(currentFolder.id);
+                                       if (success) {
+                                           setIsFolderDeleting(false);
+                                       }
+                                   }
+                               }}
+                               isLoading={isDeletingFolder} />
+
+            <FolderEditModal isOpen={isFolderEditing}
+                             onClose={closeEditFolderModal}
+                             folder={currentFolder}
+                             folderName={editFolderName}
+                             setFolderName={setEditFolderName}
+                             folderIcon={editFolderIcon}
+                             setFolderIcon={setEditFolderIcon}
+                             onSubmit={() => {
+                                 closeEditFolderModal();
+                             }} />
+
+            <RootFolderCreateModal isOpen={isRootFolderModalOpen}
+                                   onClose={() => {
+                                       setIsRootFolderModalOpen(false);
+                                       clearFolderCreateForm();
+                                   }}
+                                   folderName={newFolderName}
+                                   setFolderName={setNewFolderName}
+                                   folderIcon={newFolderIcon}
+                                   setFolderIcon={setNewFolderIcon}
+                                   onSubmit={async () => {
+                                       await handleCreateRootFolder();
+                                       setIsRootFolderModalOpen(false);
+                                   }}
+                                   isLoading={isRootFolderCreating} />
         </div>
     );
 }
